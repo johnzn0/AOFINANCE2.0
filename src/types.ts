@@ -89,6 +89,22 @@ export interface Investment {
   date: string;
 }
 
+export type UserRole = 'admin' | 'user';
+export type UserStatus = 'approved' | 'pending' | 'rejected';
+export type UserPlan = 'free' | 'pro';
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName?: string;
+  photoURL?: string;
+  role: UserRole;
+  status: UserStatus;
+  plan?: UserPlan;
+  createdAt: string;
+  lastLoginAt?: string;
+}
+
 export interface ThemeConfig {
   accent: string;
   bg: string;
@@ -129,4 +145,5 @@ export type TabPage =
   | 'reports'
   | 'calendar'
   | 'simulator'
-  | 'settings';
+  | 'settings'
+  | 'admin';

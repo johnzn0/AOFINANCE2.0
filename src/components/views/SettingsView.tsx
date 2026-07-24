@@ -10,11 +10,15 @@ import {
   Trash2,
   Check,
   Sparkles,
+  Crown,
+  FileSpreadsheet,
+  Zap,
 } from 'lucide-react';
-import { AppState, UserSettings } from '../../types';
+import { AppState, UserSettings, UserProfile } from '../../types';
 
 interface SettingsViewProps {
   state: AppState;
+  userProfile?: UserProfile | null;
   onUpdateSettings: (newSettings: Partial<UserSettings>) => void;
   onResetData: () => void;
   onImportJSON: (jsonStr: string) => boolean;
@@ -23,6 +27,7 @@ interface SettingsViewProps {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   state,
+  userProfile,
   onUpdateSettings,
   onResetData,
   onImportJSON,
@@ -32,6 +37,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [newCat, setNewCat] = useState('');
   const [newInvType, setNewInvType] = useState('');
   const [importStatus, setImportStatus] = useState<string | null>(null);
+
+  const isPro = userProfile?.plan === 'pro' || userProfile?.role === 'admin';
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,13 +75,36 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     });
   };
 
-  const handleExportData = () => {
+  const handleExportDataJSON = () => {
     const jsonStr = JSON.stringify(state, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `AOFINANCE_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCSV = () => {
+    // Generate CSV for transactions
+    const headers = ['Data', 'Tipo', 'Descrição', 'Categoria', 'Conta ID', 'Valor (R$)', 'Status'];
+    const rows = state.transactions.map((t) => [
+      t.date,
+      t.type === 'income' ? 'Receita' : 'Despesa',
+      `"${t.description.replace(/"/g, '""')}"`,
+      `"${t.category.replace(/"/g, '""')}"`,
+      t.accountId,
+      t.amount.toFixed(2),
+      t.status === 'cleared' ? 'Realizado' : 'Pendente',
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `AOFINANCE_transacoes_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -88,7 +118,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       if (content) {
         const success = onImportJSON(content);
         if (success) {
-          setImportStatus('Backup importado com sucesso!');
+          setImportStatus('Backup JSON importado com sucesso!');
         } else {
           setImportStatus('Erro ao importar arquivo JSON.');
         }
@@ -99,28 +129,59 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Profile Section */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <div className="flex items-center gap-2 text-sm font-serif font-bold text-white">
-          <User className="w-4 h-4 text-blue-400" />
-          <span>Perfil do Usuário</span>
+      {/* Profile & Plan Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div className="flex items-center gap-2 text-sm font-serif font-bold text-white">
+            <User className="w-4 h-4 text-blue-400" />
+            <span>Perfil do Usuário</span>
+          </div>
+
+          <form onSubmit={handleSaveProfile} className="flex gap-3 text-xs">
+            <input
+              type="text"
+              placeholder="Como prefere ser chamado(a)?"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition"
+            >
+              Salvar
+            </button>
+          </form>
         </div>
 
-        <form onSubmit={handleSaveProfile} className="flex gap-3 max-w-md text-xs">
-          <input
-            type="text"
-            placeholder="Como prefere ser chamado(a)?"
-            value={profileName}
-            onChange={(e) => setProfileName(e.target.value)}
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition"
-          >
-            Salvar
-          </button>
-        </form>
+        {/* Current Plan Card */}
+        <div className={`border rounded-2xl p-5 space-y-3 ${
+          isPro
+            ? 'bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/40 border-emerald-500/30'
+            : 'bg-slate-900/90 border-slate-800'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-serif font-bold text-white">
+              {isPro ? <Crown className="w-4 h-4 text-amber-400" /> : <Zap className="w-4 h-4 text-blue-400" />}
+              <span>Seu Plano Atual</span>
+            </div>
+            {isPro ? (
+              <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold rounded-full flex items-center gap-1">
+                <Crown className="w-3 h-3 text-amber-400" /> PRO PREMIUM ATIVO
+              </span>
+            ) : (
+              <span className="px-3 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold rounded-full">
+                PLANO FREE
+              </span>
+            )}
+          </div>
+
+          <p className="text-xs text-slate-300 leading-relaxed">
+            {isPro
+              ? 'Você tem acesso ilimitado ao Simulador Avançado, Exportação em Excel/CSV, Múltiplas Contas e Cartões, e backups completos.'
+              : 'Você está no plano gratuito. Para desbloquear múltiplos cartões, exportação para Excel/CSV e o simulador completo de investimentos, fale com o administrador.'}
+          </p>
+        </div>
       </div>
 
       {/* Categories & Investment Types Grid */}
@@ -212,14 +273,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* Backup, Import & Reset Data */}
+      {/* Backup, Export Excel/CSV & Import */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <h3 className="text-sm font-serif font-bold text-white">Gestão e Backup de Dados</h3>
+        <h3 className="text-sm font-serif font-bold text-white">Exportação, Importação & Backup de Dados</h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
+          {/* Export CSV / Excel */}
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl text-slate-200 font-semibold transition"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            <span>Exportar Excel / CSV</span>
+          </button>
+
           {/* Export JSON */}
           <button
-            onClick={handleExportData}
+            onClick={handleExportDataJSON}
             className="flex items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 hover:border-blue-500/50 rounded-xl text-slate-200 font-semibold transition"
           >
             <Download className="w-4 h-4 text-blue-400" />
@@ -227,8 +297,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </button>
 
           {/* Import JSON */}
-          <label className="flex items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl text-slate-200 font-semibold cursor-pointer transition">
-            <Upload className="w-4 h-4 text-emerald-400" />
+          <label className="flex items-center justify-center gap-2 p-3 bg-slate-950 border border-slate-800 hover:border-amber-500/50 rounded-xl text-slate-200 font-semibold cursor-pointer transition">
+            <Upload className="w-4 h-4 text-amber-400" />
             <span>Restaurar Backup (JSON)</span>
             <input
               type="file"

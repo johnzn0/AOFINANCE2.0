@@ -1,11 +1,34 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AppState, Transaction, Account, Transfer, CreditCard, CardPurchase, RecurringBill, Goal, Investment, UserSettings } from '../types';
+import { AppState, Transaction, Account, Transfer, CreditCard, CardPurchase, RecurringBill, Goal, Investment, UserSettings, UserProfile } from '../types';
 import { initialData } from '../data/initialData';
 import { uid, todayISO, round2, addMonths } from '../utils/formatters';
+import {
+  auth,
+  googleProvider,
+  saveStateToFirestore,
+  loadStateFromFirestore,
+  subscribeToFirestoreState,
+  ensureUserProfile,
+  subscribeToUserProfile,
+} from '../lib/firebase';
+import {
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  updateProfile,
+  User,
+} from 'firebase/auth';
 
 const STORAGE_KEY = 'aofinance_app_state_v2';
 
 export function useFinance() {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isCloudSynced, setIsCloudSynced] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
   const [state, setState] = useState<AppState>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -36,14 +59,84 @@ export function useFinance() {
     return d;
   });
 
-  // Save to localStorage on state change
+  // Track Auth state & Profile
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        try {
+          const profile = await ensureUserProfile(user);
+          setUserProfile(profile);
+        } catch (e) {
+          console.error('Failed to ensure user profile', e);
+        }
+      } else {
+        setUserProfile(null);
+      }
+      setIsAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Listen to profile updates (e.g. status changes by Admin)
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsub = subscribeToUserProfile(currentUser.uid, (profile) => {
+      if (profile) {
+        setUserProfile(profile);
+      }
+    });
+    return () => unsub();
+  }, [currentUser]);
+
+  // Load state from Firestore when user ID changes or initial load
+  useEffect(() => {
+    if (!currentUser) return;
+    const targetUid = currentUser.uid;
+    loadStateFromFirestore(targetUid).then((cloudState) => {
+      if (cloudState) {
+        setState({
+          ...initialData,
+          ...cloudState,
+          settings: {
+            ...initialData.settings,
+            ...(cloudState.settings || {}),
+          },
+        });
+        setIsCloudSynced(true);
+      }
+    });
+
+    // Real-time listener
+    const unsub = subscribeToFirestoreState(targetUid, (updatedState) => {
+      if (updatedState) {
+        setState({
+          ...initialData,
+          ...updatedState,
+          settings: {
+            ...initialData.settings,
+            ...(updatedState.settings || {}),
+          },
+        });
+        setIsCloudSynced(true);
+      }
+    });
+
+    return () => unsub();
+  }, [currentUser]);
+
+  // Save to localStorage & Firebase Firestore on state change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const targetUid = currentUser ? currentUser.uid : 'shared_default_user';
+      saveStateToFirestore(targetUid, state).then(() => {
+        setIsCloudSynced(true);
+      });
     } catch (e) {
-      console.error('Failed to save state to localStorage', e);
+      console.error('Failed to save state to localStorage/Firestore', e);
     }
-  }, [state]);
+  }, [state, currentUser]);
 
   // Process recurring bills and goal objectives on load or date change
   useEffect(() => {
@@ -425,8 +518,68 @@ export function useFinance() {
     return false;
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    try {
+      const res = await signInWithPopup(auth, googleProvider);
+      if (res.user) {
+        const prof = await ensureUserProfile(res.user);
+        setUserProfile(prof);
+      }
+    } catch (err: any) {
+      console.error('Google Sign in error:', err);
+      throw err;
+    }
+  }, []);
+
+  const loginWithEmail = useCallback(async (email: string, pass: string) => {
+    try {
+      const res = await signInWithEmailAndPassword(auth, email, pass);
+      if (res.user) {
+        const prof = await ensureUserProfile(res.user);
+        setUserProfile(prof);
+      }
+    } catch (err: any) {
+      console.error('Email login error:', err);
+      throw err;
+    }
+  }, []);
+
+  const registerWithEmail = useCallback(async (email: string, pass: string, name: string) => {
+    try {
+      const res = await createUserWithEmailAndPassword(auth, email, pass);
+      if (res.user) {
+        if (name) {
+          await updateProfile(res.user, { displayName: name });
+        }
+        const prof = await ensureUserProfile(res.user);
+        setUserProfile(prof);
+      }
+    } catch (err: any) {
+      console.error('Email register error:', err);
+      throw err;
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await signOut(auth);
+      setUserProfile(null);
+      setCurrentUser(null);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  }, []);
+
   return {
     state,
+    currentUser,
+    userProfile,
+    isAuthLoading,
+    isCloudSynced,
+    loginWithGoogle,
+    loginWithEmail,
+    registerWithEmail,
+    logout,
     cursor,
     setCursor,
     shiftMonth,

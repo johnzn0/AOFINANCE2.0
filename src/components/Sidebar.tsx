@@ -13,8 +13,10 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
+  Shield,
+  Download,
 } from 'lucide-react';
-import { TabPage, AppState } from '../types';
+import { TabPage, AppState, UserProfile } from '../types';
 import { monthLabel } from '../utils/formatters';
 
 interface SidebarProps {
@@ -23,6 +25,7 @@ interface SidebarProps {
   cursor: Date;
   onShiftMonth: (delta: number) => void;
   state: AppState;
+  userProfile?: UserProfile | null;
 }
 
 export const NAV_ITEMS: { id: TabPage; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -44,9 +47,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   cursor,
   onShiftMonth,
   state,
+  userProfile,
 }) => {
-  const profileName = state.settings.profileName || 'Configurar Perfil';
+  const profileName = userProfile?.displayName || state.settings.profileName || 'Configurar Perfil';
   const initial = profileName.trim().charAt(0).toUpperCase() || '?';
+  const isAdmin = userProfile?.role === 'admin';
+
+  const itemsToRender = [...NAV_ITEMS];
+  if (isAdmin && !itemsToRender.some((i) => i.id === 'admin')) {
+    itemsToRender.push({ id: 'admin', label: 'Administração', icon: Shield });
+  }
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 p-5 shrink-0 min-h-screen text-slate-100 sticky top-0 h-screen">
@@ -67,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Navigation tabs */}
       <nav className="flex-1 flex flex-col gap-1 overflow-y-auto pr-1">
-        {NAV_ITEMS.map((item) => {
+        {itemsToRender.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
           return (

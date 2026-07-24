@@ -1,16 +1,24 @@
 import React from 'react';
-import { TabPage } from '../types';
+import { Shield } from 'lucide-react';
+import { TabPage, UserProfile } from '../types';
 import { NAV_ITEMS } from './Sidebar';
 
 interface MobileNavProps {
   currentPage: TabPage;
   onSelectPage: (page: TabPage) => void;
+  userProfile?: UserProfile | null;
 }
 
-export const MobileNav: React.FC<MobileNavProps> = ({ currentPage, onSelectPage }) => {
+export const MobileNav: React.FC<MobileNavProps> = ({ currentPage, onSelectPage, userProfile }) => {
+  const isAdmin = userProfile?.role === 'admin';
+  const items = [...NAV_ITEMS];
+  if (isAdmin && !items.some((i) => i.id === 'admin')) {
+    items.push({ id: 'admin', label: 'Admin', icon: Shield });
+  }
+
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 z-40 px-2 py-2 flex items-center gap-1 overflow-x-auto scrollbar-none">
-      {NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         const Icon = item.icon;
         const isActive = currentPage === item.id;
         return (

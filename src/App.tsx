@@ -5,11 +5,14 @@ import { TabPage } from './types';
 import { Sidebar } from './components/Sidebar';
 import { MobileNav } from './components/MobileNav';
 import { Header } from './components/Header';
+import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { GoalContribModal } from './components/GoalContribModal';
 import { WithdrawModal } from './components/WithdrawModal';
 import { OnboardingModal } from './components/OnboardingModal';
 
 // Views
+import { LoginView } from './components/views/LoginView';
+import { AdminView } from './components/views/AdminView';
 import { OverviewView } from './components/views/OverviewView';
 import { TransactionsView } from './components/views/TransactionsView';
 import { AccountsCardsView } from './components/views/AccountsCardsView';
@@ -29,6 +32,31 @@ export default function App() {
   const [contribGoalId, setContribGoalId] = useState<string | null>(null);
   const [withdrawInvId, setWithdrawInvId] = useState<string | null>(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  // Loading state
+  if (finance.isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/40 text-blue-400 font-serif font-bold text-xl flex items-center justify-center animate-pulse mb-3">
+          AO
+        </div>
+        <p className="text-xs text-slate-400 font-medium">Iniciando AO FINANCE...</p>
+      </div>
+    );
+  }
+
+  // Auth Guard: Show Login / Status Screen if not logged in or not approved
+  if (!finance.currentUser || !finance.userProfile || finance.userProfile.status !== 'approved') {
+    return (
+      <LoginView
+        onLoginWithGoogle={finance.loginWithGoogle}
+        onLoginWithEmail={finance.loginWithEmail}
+        onRegisterWithEmail={finance.registerWithEmail}
+        onLogout={finance.logout}
+        userProfile={finance.userProfile}
+      />
+    );
+  }
 
   const selectedGoalForContrib =
     finance.state.goals.find((g) => g.id === contribGoalId) || null;
@@ -80,14 +108,17 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans selection:bg-blue-500 selection:text-white">
-      {/* Desktop Sidebar */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
+      <PWAInstallBanner />
+      <div className="flex flex-1">
+        {/* Desktop Sidebar */}
       <Sidebar
         currentPage={currentPage}
         onSelectPage={setCurrentPage}
         cursor={finance.cursor}
         onShiftMonth={finance.shiftMonth}
         state={finance.state}
+        userProfile={finance.userProfile}
       />
 
       {/* Main Content Area */}
@@ -98,6 +129,9 @@ export default function App() {
           onShiftMonth={finance.shiftMonth}
           onSelectPage={setCurrentPage}
           state={finance.state}
+          userProfile={finance.userProfile}
+          onLogout={finance.logout}
+          isCloudSynced={finance.isCloudSynced}
         />
 
         <AnimatePresence mode="wait">
@@ -108,6 +142,10 @@ export default function App() {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
           >
+            {currentPage === 'admin' && finance.userProfile.role === 'admin' && (
+              <AdminView currentUserEmail={finance.currentUser.email || undefined} />
+            )}
+
             {currentPage === 'overview' && (
               <OverviewView
                 state={finance.state}
@@ -173,6 +211,7 @@ export default function App() {
             {currentPage === 'settings' && (
               <SettingsView
                 state={finance.state}
+                userProfile={finance.userProfile}
                 onUpdateSettings={finance.updateSettings}
                 onResetData={finance.resetDataToSample}
                 onImportJSON={finance.importStateJSON}
@@ -182,9 +221,14 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
+      </div>
 
       {/* Mobile Navigation Bar */}
-      <MobileNav currentPage={currentPage} onSelectPage={setCurrentPage} />
+      <MobileNav
+        currentPage={currentPage}
+        onSelectPage={setCurrentPage}
+        userProfile={finance.userProfile}
+      />
 
       {/* Modals */}
       <GoalContribModal

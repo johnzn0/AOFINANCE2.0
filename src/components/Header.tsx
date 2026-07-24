@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, User } from 'lucide-react';
-import { TabPage, AppState } from '../types';
+import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield } from 'lucide-react';
+import { TabPage, AppState, UserProfile } from '../types';
 import { monthLabel } from '../utils/formatters';
 
 interface HeaderProps {
@@ -9,6 +9,9 @@ interface HeaderProps {
   onShiftMonth: (delta: number) => void;
   onSelectPage: (page: TabPage) => void;
   state: AppState;
+  userProfile?: UserProfile | null;
+  onLogout?: () => void;
+  isCloudSynced?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +20,9 @@ export const Header: React.FC<HeaderProps> = ({
   onShiftMonth,
   onSelectPage,
   state,
+  userProfile,
+  onLogout,
+  isCloudSynced = true,
 }) => {
   const titles: Record<TabPage, { title: string; sub: string }> = {
     overview: { title: 'Visão Geral', sub: 'Seu resumo financeiro e alertas inteligentes' },
@@ -29,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
     calendar: { title: 'Calendário Financeiro', sub: 'Movimentações organizadas por dia' },
     simulator: { title: 'Simulador', sub: 'Projeção de juros compostos e aportes' },
     settings: { title: 'Configurações', sub: 'Perfil, categorias e backup de dados' },
+    admin: { title: 'Painel do Administrador', sub: 'Aprovação e gestão de acesso de usuários' },
   };
 
   const current = titles[currentPage] || { title: 'AOFINANCE', sub: 'Gestão Financeira' };
@@ -36,14 +43,31 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/80 mb-6">
       <div>
-        <h2 className="text-2xl font-serif font-bold text-white tracking-tight">
-          {current.title}
+        <h2 className="text-2xl font-serif font-bold text-white tracking-tight flex items-center gap-2">
+          {currentPage === 'admin' && <Shield className="w-6 h-6 text-blue-400 shrink-0" />}
+          <span>{current.title}</span>
         </h2>
         <p className="text-xs text-slate-400 mt-1">{current.sub}</p>
       </div>
 
       {/* Mobile period & profile control */}
-      <div className="flex items-center gap-3 self-start sm:self-auto">
+      <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+        {userProfile?.role === 'admin' && (
+          <button
+            onClick={() => onSelectPage('admin')}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 border border-purple-500/30 text-purple-300 rounded-lg text-xs font-semibold hover:bg-purple-500/20 transition"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>Painel Admin</span>
+          </button>
+        )}
+
+        {/* Firebase cloud status pill */}
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium">
+          <Database className="w-3.5 h-3.5" />
+          <span>Nuvem Ativa</span>
+        </div>
+
         <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs font-mono">
           <button
             onClick={() => onShiftMonth(-1)}
@@ -62,15 +86,16 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
 
-        <button
-          onClick={() => onSelectPage('settings')}
-          className="md:hidden flex items-center gap-2 px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-medium text-slate-200"
-        >
-          <User className="w-3.5 h-3.5 text-blue-400" />
-          <span className="truncate max-w-[80px]">
-            {state.settings.profileName || 'Perfil'}
-          </span>
-        </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-medium transition"
+            title="Sair da Conta"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Sair</span>
+          </button>
+        )}
       </div>
     </header>
   );
