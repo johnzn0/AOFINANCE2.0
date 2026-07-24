@@ -1,0 +1,6 @@
+{
+  "name": "AOFINANCE",
+  "description": "Gestão financeira pessoal avançada com visão geral, transações, contas e cartões, investimentos, metas, visão anual, relatórios, calendário e simulador de juros compostos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

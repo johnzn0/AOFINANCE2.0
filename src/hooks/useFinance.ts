@@ -1,0 +1,458 @@
+import { useState, useEffect, useCallback } from 'react';
+import { AppState, Transaction, Account, Transfer, CreditCard, CardPurchase, RecurringBill, Goal, Investment, UserSettings } from '../types';
+import { initialData } from '../data/initialData';
+import { uid, todayISO, round2, addMonths } from '../utils/formatters';
+
+const STORAGE_KEY = 'aofinance_app_state_v2';
+
+export function useFinance() {
+  const [state, setState] = useState<AppState>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...initialData,
+          ...parsed,
+          settings: {
+            ...initialData.settings,
+            ...(parsed.settings || {}),
+            theme: {
+              ...initialData.settings.theme,
+              ...(parsed.settings?.theme || {}),
+            },
+          },
+        };
+      }
+    } catch (e) {
+      console.error('Failed to load state from localStorage', e);
+    }
+    return initialData;
+  });
+
+  const [cursor, setCursor] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d;
+  });
+
+  // Save to localStorage on state change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.error('Failed to save state to localStorage', e);
+    }
+  }, [state]);
+
+  // Process recurring bills and goal objectives on load or date change
+  useEffect(() => {
+    const now = new Date();
+    const todayDay = now.getDate();
+    const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    let updated = false;
+
+    let newTransactions = [...state.transactions];
+    let newBills = state.recurringBills.map((b) => {
+      if (b.active && b.lastGenMonth !== curMonth && todayDay >= b.day) {
+        const dateStr = `${curMonth}-${String(b.day).padStart(2, '0')}`;
+        newTransactions.push({
+          id: uid(),
+          date: dateStr,
+          type: 'expense',
+          category: b.category,
+          description: b.name,
+          amount: b.amount,
+          accountId: b.accountId || state.accounts[0]?.id || 'acc-1',
+        });
+        updated = true;
+        return { ...b, lastGenMonth: curMonth };
+      }
+      return b;
+    });
+
+    let newGoals = state.goals.map((g) => {
+      if (g.kind === 'objetivo' && (g.monthlyAmount || 0) > 0 && g.lastContribMonth !== curMonth) {
+        const mAmount = g.monthlyAmount || 0;
+        newTransactions.push({
+          id: uid(),
+          date: `${curMonth}-01`,
+          type: 'expense',
+          category: 'Poupança/Metas',
+          description: `Aporte automático: ${g.name}`,
+          amount: mAmount,
+          accountId: g.accountId || state.accounts[0]?.id || 'acc-1',
+        });
+        updated = true;
+        return {
+          ...g,
+          saved: round2(g.saved + mAmount),
+          lastContribMonth: curMonth,
+        };
+      }
+      return g;
+    });
+
+    if (updated) {
+      setState((prev) => ({
+        ...prev,
+        transactions: newTransactions,
+        recurringBills: newBills,
+        goals: newGoals,
+      }));
+    }
+  }, []);
+
+  const shiftMonth = useCallback((delta: number) => {
+    setCursor((prev) => {
+      const next = new Date(prev);
+      next.setMonth(next.getMonth() + delta);
+      return next;
+    });
+  }, []);
+
+  // Actions
+  const addTransaction = useCallback((tx: Omit<Transaction, 'id'>, installments = 1) => {
+    setState((prev) => {
+      const newTxList = [...prev.transactions];
+      if (installments > 1) {
+        const perAmt = round2(tx.amount / installments);
+        const groupId = uid();
+        for (let i = 0; i < installments; i++) {
+          newTxList.push({
+            ...tx,
+            id: uid(),
+            date: addMonths(tx.date, i),
+            description: `${tx.description} (${i + 1}/${installments})`,
+            amount: perAmt,
+            groupId,
+            attachment: i === 0 ? tx.attachment : null,
+          });
+        }
+      } else {
+        newTxList.push({ ...tx, id: uid() });
+      }
+      return { ...prev, transactions: newTxList };
+    });
+  }, []);
+
+  const deleteTransaction = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      transactions: prev.transactions.filter((t) => t.id !== id),
+    }));
+  }, []);
+
+  const addAccount = useCallback((name: string, type: Account['type'] = 'checking') => {
+    setState((prev) => ({
+      ...prev,
+      accounts: [...prev.accounts, { id: uid(), name, type }],
+    }));
+  }, []);
+
+  const removeAccount = useCallback((id: string) => {
+    setState((prev) => {
+      if (prev.accounts.length <= 1) return prev;
+      return {
+        ...prev,
+        accounts: prev.accounts.filter((a) => a.id !== id),
+      };
+    });
+  }, []);
+
+  const addTransfer = useCallback((tr: Omit<Transfer, 'id'>) => {
+    setState((prev) => ({
+      ...prev,
+      transfers: [{ ...tr, id: uid() }, ...prev.transfers],
+    }));
+  }, []);
+
+  const deleteTransfer = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      transfers: prev.transfers.filter((t) => t.id !== id),
+    }));
+  }, []);
+
+  const addCard = useCallback((card: Omit<CreditCard, 'id'>) => {
+    setState((prev) => ({
+      ...prev,
+      cards: [...prev.cards, { ...card, id: uid() }],
+    }));
+  }, []);
+
+  const removeCard = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      cards: prev.cards.filter((c) => c.id !== id),
+      cardPurchases: prev.cardPurchases.filter((p) => p.cardId !== id),
+    }));
+  }, []);
+
+  const addCardPurchase = useCallback(
+    (purchase: Omit<CardPurchase, 'id' | 'paid' | 'invoiceMonth'>, installments = 1, card: CreditCard) => {
+      setState((prev) => {
+        const newPurchases = [...prev.cardPurchases];
+        const groupId = uid();
+        const perAmt = round2(purchase.amount / installments);
+
+        const getInvoiceMonth = (c: CreditCard, dateStr: string) => {
+          const d = new Date(dateStr + 'T00:00:00');
+          if (d.getDate() > c.closingDay) d.setMonth(d.getMonth() + 1);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        };
+
+        for (let i = 0; i < installments; i++) {
+          const pDate = addMonths(purchase.date, i);
+          newPurchases.push({
+            ...purchase,
+            id: uid(),
+            date: pDate,
+            description: installments > 1 ? `${purchase.description} (${i + 1}/${installments})` : purchase.description,
+            amount: perAmt,
+            invoiceMonth: getInvoiceMonth(card, pDate),
+            paid: false,
+            groupId,
+          });
+        }
+        return { ...prev, cardPurchases: newPurchases };
+      });
+    },
+    []
+  );
+
+  const payCardInvoice = useCallback((cardId: string, invoiceMonth: string, accountId: string) => {
+    setState((prev) => {
+      const card = prev.cards.find((c) => c.id === cardId);
+      if (!card) return prev;
+      const unpaid = prev.cardPurchases.filter((p) => p.cardId === cardId && p.invoiceMonth === invoiceMonth && !p.paid);
+      const totalAmt = round2(unpaid.reduce((s, p) => s + p.amount, 0));
+      if (totalAmt <= 0) return prev;
+
+      const newTx: Transaction = {
+        id: uid(),
+        date: todayISO(),
+        type: 'expense',
+        category: 'Cartão de crédito',
+        description: `Fatura ${card.name} (${invoiceMonth})`,
+        amount: totalAmt,
+        accountId: accountId || prev.accounts[0]?.id || 'acc-1',
+      };
+
+      const updatedPurchases = prev.cardPurchases.map((p) => {
+        if (p.cardId === cardId && p.invoiceMonth === invoiceMonth) {
+          return { ...p, paid: true };
+        }
+        return p;
+      });
+
+      return {
+        ...prev,
+        transactions: [newTx, ...prev.transactions],
+        cardPurchases: updatedPurchases,
+      };
+    });
+  }, []);
+
+  const deleteCardPurchase = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      cardPurchases: prev.cardPurchases.filter((p) => p.id !== id),
+    }));
+  }, []);
+
+  const addRecurringBill = useCallback((bill: Omit<RecurringBill, 'id'>) => {
+    setState((prev) => ({
+      ...prev,
+      recurringBills: [...prev.recurringBills, { ...bill, id: uid() }],
+    }));
+  }, []);
+
+  const toggleRecurringBill = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      recurringBills: prev.recurringBills.map((b) => (b.id === id ? { ...b, active: !b.active } : b)),
+    }));
+  }, []);
+
+  const removeRecurringBill = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      recurringBills: prev.recurringBills.filter((b) => b.id !== id),
+    }));
+  }, []);
+
+  const addGoal = useCallback((goal: Omit<Goal, 'id' | 'saved' | 'createdDate'>, initialSaved = 0) => {
+    setState((prev) => ({
+      ...prev,
+      goals: [
+        ...prev.goals,
+        {
+          ...goal,
+          id: uid(),
+          saved: initialSaved,
+          createdDate: todayISO(),
+        },
+      ],
+    }));
+  }, []);
+
+  const contributeToGoal = useCallback((goalId: string, amount: number, accountId: string) => {
+    setState((prev) => {
+      const goal = prev.goals.find((g) => g.id === goalId);
+      if (!goal || amount <= 0) return prev;
+
+      const newTx: Transaction = {
+        id: uid(),
+        date: todayISO(),
+        type: 'expense',
+        category: 'Poupança/Metas',
+        description: `Aporte: ${goal.name}`,
+        amount: round2(amount),
+        accountId: accountId || prev.accounts[0]?.id || 'acc-1',
+      };
+
+      const updatedGoals = prev.goals.map((g) =>
+        g.id === goalId ? { ...g, saved: round2(g.saved + amount) } : g
+      );
+
+      return {
+        ...prev,
+        transactions: [newTx, ...prev.transactions],
+        goals: updatedGoals,
+      };
+    });
+  }, []);
+
+  const deleteGoal = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      goals: prev.goals.filter((g) => g.id !== id),
+    }));
+  }, []);
+
+  const addInvestment = useCallback((inv: Omit<Investment, 'id' | 'date'>) => {
+    setState((prev) => ({
+      ...prev,
+      investments: [
+        ...prev.investments,
+        { ...inv, id: uid(), date: todayISO() },
+      ],
+    }));
+  }, []);
+
+  const updateInvestment = useCallback((id: string, updated: Partial<Investment>) => {
+    setState((prev) => ({
+      ...prev,
+      investments: prev.investments.map((inv) => (inv.id === id ? { ...inv, ...updated } : inv)),
+    }));
+  }, []);
+
+  const deleteInvestment = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      investments: prev.investments.filter((inv) => inv.id !== id),
+    }));
+  }, []);
+
+  const withdrawInvestment = useCallback((id: string, amount: number) => {
+    setState((prev) => {
+      const inv = prev.investments.find((i) => i.id === id);
+      if (!inv || amount <= 0 || amount > inv.current + 0.01) return prev;
+
+      const ratio = amount / inv.current;
+      const investedCut = inv.invested * ratio;
+      const nextCurrent = Math.max(0, inv.current - amount);
+      const nextInvested = Math.max(0, inv.invested - investedCut);
+
+      const newTx: Transaction = {
+        id: uid(),
+        date: todayISO(),
+        type: 'income',
+        category: 'Resgate de Investimento',
+        description: `Resgate de ${inv.name}`,
+        amount: round2(amount),
+        accountId: prev.accounts[0]?.id || 'acc-1',
+      };
+
+      const updatedInvestments = prev.investments
+        .map((i) => (i.id === id ? { ...i, current: round2(nextCurrent), invested: round2(nextInvested) } : i))
+        .filter((i) => i.current > 0.01);
+
+      return {
+        ...prev,
+        transactions: [newTx, ...prev.transactions],
+        investments: updatedInvestments,
+      };
+    });
+  }, []);
+
+  const updateSettings = useCallback((newSettings: Partial<UserSettings>) => {
+    setState((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        ...newSettings,
+        theme: {
+          ...prev.settings.theme,
+          ...(newSettings.theme || {}),
+        },
+      },
+    }));
+  }, []);
+
+  const resetDataToSample = useCallback(() => {
+    setState(initialData);
+  }, []);
+
+  const importStateJSON = useCallback((jsonStr: string) => {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (parsed && typeof parsed === 'object') {
+        setState({
+          ...initialData,
+          ...parsed,
+          settings: {
+            ...initialData.settings,
+            ...(parsed.settings || {}),
+          },
+        });
+        return true;
+      }
+    } catch (e) {
+      console.error('Invalid JSON file', e);
+    }
+    return false;
+  }, []);
+
+  return {
+    state,
+    cursor,
+    setCursor,
+    shiftMonth,
+    addTransaction,
+    deleteTransaction,
+    addAccount,
+    removeAccount,
+    addTransfer,
+    deleteTransfer,
+    addCard,
+    removeCard,
+    addCardPurchase,
+    payCardInvoice,
+    deleteCardPurchase,
+    addRecurringBill,
+    toggleRecurringBill,
+    removeRecurringBill,
+    addGoal,
+    contributeToGoal,
+    deleteGoal,
+    addInvestment,
+    updateInvestment,
+    deleteInvestment,
+    withdrawInvestment,
+    updateSettings,
+    resetDataToSample,
+    importStateJSON,
+  };
+}
