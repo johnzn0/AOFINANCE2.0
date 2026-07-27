@@ -34,6 +34,9 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
 
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
+    if (storedToken && (res.status === 401 || res.status === 404)) {
+      removeStoredToken();
+    }
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || `HTTP ${res.status}`);
   }

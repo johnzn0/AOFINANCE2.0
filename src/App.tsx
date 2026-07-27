@@ -52,6 +52,7 @@ export default function App() {
         onLoginWithGoogle={finance.loginWithGoogle}
         onLoginWithEmail={finance.loginWithEmail}
         onRegisterWithEmail={finance.registerWithEmail}
+        onResetPassword={finance.resetPassword}
         onLogout={finance.logout}
         userProfile={finance.userProfile}
       />

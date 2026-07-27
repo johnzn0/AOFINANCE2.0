@@ -54,7 +54,20 @@ export async function registerUserWithEmail(email: string, pass: string, display
   const cleanEmail = email.toLowerCase().trim();
   const existing = await getUserByEmail(cleanEmail);
   if (existing) {
-    throw new Error('Email já cadastrado no sistema.');
+    if (!existing.passwordHash) {
+      const newHash = hashPassword(pass);
+      const [updated] = await db
+        .update(users)
+        .set({
+          passwordHash: newHash,
+          displayName: displayName || existing.displayName,
+          lastLoginAt: new Date(),
+        })
+        .where(eq(users.uid, existing.uid))
+        .returning();
+      return updated;
+    }
+    throw new Error('E-mail já cadastrado. Alterne para a aba "Entrar" e digite sua senha.');
   }
 
   const uid = 'usr_' + crypto.randomBytes(8).toString('hex');
@@ -69,7 +82,7 @@ export async function registerUserWithEmail(email: string, pass: string, display
       passwordHash,
       displayName: displayName || cleanEmail.split('@')[0],
       role: isAdmin ? 'admin' : 'user',
-      status: 'approved',
+      status: isAdmin ? 'approved' : 'pending',
       plan: isAdmin ? 'pro' : 'free',
       lastLoginAt: new Date(),
     })
@@ -80,12 +93,27 @@ export async function registerUserWithEmail(email: string, pass: string, display
 
 export async function loginUserWithEmail(email: string, pass: string) {
   const cleanEmail = email.toLowerCase().trim();
-  const user = await getUserByEmail(cleanEmail);
+  let user = await getUserByEmail(cleanEmail);
+
   if (!user) {
-    throw new Error('Usuário não encontrado.');
+    if (cleanEmail === ADMIN_EMAIL.toLowerCase()) {
+      // Auto-create admin account on first login attempt
+      return await registerUserWithEmail(cleanEmail, pass, 'John Ozzi');
+    }
+    throw new Error('Usuário não encontrado. Se ainda não tem conta, clique na aba "Criar Conta".');
   }
 
-  if (user.passwordHash && !verifyPassword(pass, user.passwordHash)) {
+  if (!user.passwordHash) {
+    const newHash = hashPassword(pass);
+    const [updated] = await db
+      .update(users)
+      .set({ passwordHash: newHash, lastLoginAt: new Date() })
+      .where(eq(users.uid, user.uid))
+      .returning();
+    return updated;
+  }
+
+  if (!verifyPassword(pass, user.passwordHash)) {
     throw new Error('Senha incorreta.');
   }
 
@@ -104,7 +132,7 @@ export async function getOrCreateUser(uid: string, email: string, displayName?: 
     const cleanEmail = email.toLowerCase().trim();
     const isAdmin = cleanEmail === ADMIN_EMAIL.toLowerCase();
     const defaultRole = isAdmin ? 'admin' : 'user';
-    const defaultStatus = 'approved';
+    const defaultStatus = isAdmin ? 'approved' : 'pending';
     const defaultPlan = isAdmin ? 'pro' : 'free';
 
     const [existing] = await db.select().from(users).where(eq(users.uid, uid));

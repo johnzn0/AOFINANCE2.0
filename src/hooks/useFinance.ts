@@ -12,11 +12,13 @@ import {
   getCurrentUserProfile,
   removeStoredToken,
 } from '../lib/api';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import {
   onAuthStateChanged,
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   updateProfile,
   User,
@@ -80,6 +82,49 @@ export function useFinance() {
         }
       } catch (err) {
         // No valid local token
+      }
+
+      if (isSupabaseConfigured && supabase) {
+        const { data: subData } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (!isMounted) return;
+          if (session?.user) {
+            const email = session.user.email || '';
+            const name = session.user.user_metadata?.full_name || email.split('@')[0];
+            try {
+              // Sync Supabase user with Cloud SQL
+              const res = await fetch('/api/auth/sync', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  uid: session.user.id,
+                  email,
+                  displayName: name,
+                }),
+              });
+              const prof = await res.json();
+              if (prof && !prof.error) {
+                setUserProfile(prof);
+                setCurrentUser({
+                  uid: prof.uid,
+                  email: prof.email,
+                  displayName: prof.displayName,
+                } as any);
+              }
+            } catch (e) {
+              console.error('Failed to sync Supabase user with Cloud SQL', e);
+            }
+          }
+          setIsAuthLoading(false);
+        });
+
+        // Check current session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setIsAuthLoading(false);
+          return;
+        }
       }
 
       firebaseUnsub = onAuthStateChanged(auth, async (user) => {
@@ -538,6 +583,17 @@ export function useFinance() {
 
   const loginWithGoogle = useCallback(async () => {
     try {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+          },
+        });
+        if (error) throw error;
+        return;
+      }
+
       const res = await signInWithPopup(auth, googleProvider);
       if (res.user) {
         const prof = await syncUserWithCloudSql();
@@ -583,6 +639,30 @@ export function useFinance() {
     }
   }, []);
 
+  const resetPassword = useCallback(async (resetEmail: string) => {
+    const cleanEmail = resetEmail.trim().toLowerCase();
+    if (!cleanEmail) throw new Error('Por favor, informe seu e-mail.');
+
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: window.location.origin,
+      });
+      if (error) throw error;
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail);
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found') {
+        throw new Error('E-mail não encontrado no sistema.');
+      } else if (err.code === 'auth/invalid-email') {
+        throw new Error('Por favor, digite um e-mail válido.');
+      }
+      throw new Error(err.message || 'Erro ao enviar e-mail de redefinição de senha.');
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       removeStoredToken();
@@ -606,6 +686,7 @@ export function useFinance() {
     loginWithGoogle,
     loginWithEmail,
     registerWithEmail,
+    resetPassword,
     logout,
     cursor,
     setCursor,

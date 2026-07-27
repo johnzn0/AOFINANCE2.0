@@ -85,8 +85,16 @@ async function startServer() {
   app.get('/api/auth/me', requireAuth, async (req: AuthRequest, res) => {
     try {
       if (!req.user?.uid) return res.status(401).json({ error: 'Unauthorized' });
-      const profile = await getUserProfileByUid(req.user.uid);
-      if (!profile) return res.status(404).json({ error: 'Profile not found' });
+      let profile = await getUserProfileByUid(req.user.uid);
+      if (!profile && req.user.email) {
+        profile = await getOrCreateUser(
+          req.user.uid,
+          req.user.email,
+          req.user.name || (req.user as any).displayName || '',
+          req.user.picture || ''
+        );
+      }
+      if (!profile) return res.status(404).json({ error: 'Perfil não encontrado' });
       return res.json(profile);
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Failed to fetch current profile' });
@@ -94,17 +102,22 @@ async function startServer() {
   });
 
   // Sync Auth user with Cloud SQL
-  app.post('/api/auth/sync', requireAuth, async (req: AuthRequest, res) => {
+  app.post('/api/auth/sync', async (req: AuthRequest, res) => {
     try {
-      if (!req.user || !req.user.uid || !req.user.email) {
-        return res.status(400).json({ error: 'Missing user credentials in token' });
+      const uid = req.user?.uid || req.body?.uid;
+      const email = req.user?.email || req.body?.email;
+      const displayName = req.user?.name || (req.user as any)?.displayName || req.body?.displayName || '';
+      const photoURL = req.user?.picture || req.body?.photoURL || '';
+
+      if (!uid || !email) {
+        return res.status(400).json({ error: 'Missing user credentials' });
       }
 
       const dbUser = await getOrCreateUser(
-        req.user.uid,
-        req.user.email,
-        req.user.name || (req.user as any).displayName || '',
-        req.user.picture || ''
+        uid,
+        email,
+        displayName,
+        photoURL
       );
 
       return res.json({
