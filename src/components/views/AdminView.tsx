@@ -16,7 +16,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { UserProfile, UserStatus, UserRole, UserPlan } from '../../types';
-import { subscribeToAllUsers, updateUserStatus, ADMIN_EMAIL } from '../../lib/firebase';
+import { fetchAdminUsers, updateAdminUser } from '../../lib/api';
+import { ADMIN_EMAIL } from '../../lib/firebase';
 
 interface AdminViewProps {
   currentUserEmail?: string;
@@ -29,19 +30,28 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUserEmail }) => {
   const [filterStatus, setFilterStatus] = useState<'all' | UserStatus>('all');
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    const unsub = subscribeToAllUsers((userList) => {
-      setUsers(userList);
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const list = await fetchAdminUsers();
+      setUsers(list);
+    } catch (err) {
+      console.error('Failed to load admin users:', err);
+    } finally {
       setLoading(false);
-    });
-    return () => unsub();
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
   }, []);
 
   const handleUpdateStatus = async (uid: string, newStatus: UserStatus, targetEmail: string) => {
     try {
-      await updateUserStatus(uid, newStatus);
+      await updateAdminUser(uid, { status: newStatus });
       setActionSuccess(`Status de ${targetEmail} atualizado para ${newStatus.toUpperCase()}`);
       setTimeout(() => setActionSuccess(null), 3000);
+      loadUsers();
     } catch (err) {
       alert('Erro ao atualizar status do usuário.');
     }
@@ -50,9 +60,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUserEmail }) => {
   const handleTogglePlan = async (uid: string, currentPlan: UserPlan = 'free', targetEmail: string) => {
     const nextPlan: UserPlan = currentPlan === 'pro' ? 'free' : 'pro';
     try {
-      await updateUserStatus(uid, 'approved', undefined, nextPlan);
+      await updateAdminUser(uid, { status: 'approved', plan: nextPlan });
       setActionSuccess(`Plano de ${targetEmail} alterado para ${nextPlan.toUpperCase()}`);
       setTimeout(() => setActionSuccess(null), 3000);
+      loadUsers();
     } catch (err) {
       alert('Erro ao alterar plano do usuário.');
     }
@@ -61,9 +72,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUserEmail }) => {
   const handleToggleAdmin = async (uid: string, currentRole: UserRole, targetEmail: string) => {
     const nextRole: UserRole = currentRole === 'admin' ? 'user' : 'admin';
     try {
-      await updateUserStatus(uid, 'approved', nextRole);
+      await updateAdminUser(uid, { status: 'approved', role: nextRole });
       setActionSuccess(`Permissão de ${targetEmail} alterada para ${nextRole.toUpperCase()}`);
       setTimeout(() => setActionSuccess(null), 3000);
+      loadUsers();
     } catch (err) {
       alert('Erro ao alterar função.');
     }

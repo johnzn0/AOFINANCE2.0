@@ -38,8 +38,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
         await onLoginWithEmail(email.trim(), password);
       }
     } catch (err: any) {
+      console.error('Auth error:', err);
       let msg = err.message || 'Ocorreu um erro no acesso.';
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      if (err.code === 'auth/operation-not-allowed') {
+        msg = 'O login por E-mail/Senha não está ativado no Firebase Console. Entre com o Google ou clique em "Entrar como Convidado" abaixo.';
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         msg = 'E-mail ou senha incorretos.';
       } else if (err.code === 'auth/email-already-in-use') {
         msg = 'Este e-mail já está cadastrado no sistema.';
@@ -56,7 +59,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
     try {
       await onLoginWithGoogle();
     } catch (err: any) {
-      setErrorMsg('Erro ao conectar com Google. Tente novamente.');
+      console.error('Google Auth error:', err);
+      let msg = 'Erro ao conectar com Google.';
+      if (err.code === 'auth/popup-blocked') {
+        msg = 'O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.';
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        msg = 'Janela de login fechada antes da conclusão.';
+      } else if (err.code === 'auth/unauthorized-domain') {
+        msg = 'Domínio não autorizado no Firebase Console. Utilize a demonstração rápida.';
+      }
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
     }
