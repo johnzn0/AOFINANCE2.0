@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../db/users.ts';
-import { adminAuth } from '../lib/firebase-admin.ts';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -22,7 +21,7 @@ export const requireAuth = async (
 
   const token = authHeader.split('Bearer ')[1];
 
-  // Try custom Cloud SQL token first
+  // Verify Cloud SQL token
   const customUser = verifyToken(token);
   if (customUser) {
     req.user = {
@@ -32,16 +31,6 @@ export const requireAuth = async (
     return next();
   }
 
-  // Fallback to Firebase token if available
-  try {
-    const decodedToken = await adminAuth.verifyIdToken(token);
-    req.user = {
-      uid: decodedToken.uid,
-      email: decodedToken.email || '',
-      ...decodedToken,
-    };
-    return next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
-  }
+  return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
 };
+

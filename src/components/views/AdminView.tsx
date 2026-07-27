@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 import { UserProfile, UserStatus, UserRole, UserPlan } from '../../types';
 import { fetchAdminUsers, updateAdminUser } from '../../lib/api';
-import { ADMIN_EMAIL } from '../../lib/firebase';
+
+const ADMIN_EMAIL = 'johnozzi21@gmail.com';
 
 interface AdminViewProps {
   currentUserEmail?: string;

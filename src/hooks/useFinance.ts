@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { AppState, Transaction, Account, Transfer, CreditCard, CardPurchase, RecurringBill, Goal, Investment, UserSettings, UserProfile } from '../types';
 import { initialData } from '../data/initialData';
 import { uid, todayISO, round2, addMonths } from '../utils/formatters';
-import { auth, googleProvider } from '../lib/firebase';
 import {
   syncUserWithCloudSql,
   loadStateFromCloudSql,
@@ -13,21 +12,11 @@ import {
   removeStoredToken,
 } from '../lib/api';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import {
-  onAuthStateChanged,
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  signOut,
-  updateProfile,
-  User,
-} from 'firebase/auth';
 
 const STORAGE_KEY = 'aofinance_app_state_v2';
 
 export function useFinance() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ uid: string; email: string; displayName?: string } | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isCloudSynced, setIsCloudSynced] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -65,7 +54,6 @@ export function useFinance() {
   // Track Auth state & Profile
   useEffect(() => {
     let isMounted = true;
-    let firebaseUnsub: (() => void) | null = null;
 
     async function checkSession() {
       try {
@@ -76,7 +64,7 @@ export function useFinance() {
             uid: profile.uid,
             email: profile.email,
             displayName: profile.displayName,
-          } as any);
+          });
           setIsAuthLoading(false);
           return;
         }
@@ -110,7 +98,7 @@ export function useFinance() {
                   uid: prof.uid,
                   email: prof.email,
                   displayName: prof.displayName,
-                } as any);
+                });
               }
             } catch (e) {
               console.error('Failed to sync Supabase user with Cloud SQL', e);
@@ -127,37 +115,13 @@ export function useFinance() {
         }
       }
 
-      firebaseUnsub = onAuthStateChanged(auth, async (user) => {
-        if (!isMounted) return;
-        if (user) {
-          setCurrentUser(user);
-          try {
-            const profile = await syncUserWithCloudSql();
-            setUserProfile(profile);
-          } catch (e) {
-            setUserProfile({
-              uid: user.uid,
-              email: user.email || '',
-              displayName: user.displayName || '',
-              role: user.email?.toLowerCase() === 'johnozzi21@gmail.com' ? 'admin' : 'user',
-              status: 'approved',
-              plan: user.email?.toLowerCase() === 'johnozzi21@gmail.com' ? 'pro' : 'free',
-              createdAt: new Date().toISOString(),
-            });
-          }
-        } else {
-          setUserProfile(null);
-          setCurrentUser(null);
-        }
-        setIsAuthLoading(false);
-      });
+      setIsAuthLoading(false);
     }
 
     checkSession();
 
     return () => {
       isMounted = false;
-      if (firebaseUnsub) firebaseUnsub();
     };
   }, []);
 
@@ -593,12 +557,7 @@ export function useFinance() {
         if (error) throw error;
         return;
       }
-
-      const res = await signInWithPopup(auth, googleProvider);
-      if (res.user) {
-        const prof = await syncUserWithCloudSql();
-        setUserProfile(prof);
-      }
+      throw new Error('Supabase não está configurado. Por favor, adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no seu .env para ativar a autenticação com Google via Supabase.');
     } catch (err: any) {
       console.error('Google Sign in error:', err);
       throw err;
@@ -614,7 +573,7 @@ export function useFinance() {
           uid: res.profile.uid,
           email: res.profile.email,
           displayName: res.profile.displayName,
-        } as any);
+        });
       }
     } catch (err: any) {
       console.error('Email login error:', err);
@@ -631,7 +590,7 @@ export function useFinance() {
           uid: res.profile.uid,
           email: res.profile.email,
           displayName: res.profile.displayName,
-        } as any);
+        });
       }
     } catch (err: any) {
       console.error('Email register error:', err);
@@ -651,22 +610,15 @@ export function useFinance() {
       return;
     }
 
-    try {
-      await sendPasswordResetEmail(auth, cleanEmail);
-    } catch (err: any) {
-      if (err.code === 'auth/user-not-found') {
-        throw new Error('E-mail não encontrado no sistema.');
-      } else if (err.code === 'auth/invalid-email') {
-        throw new Error('Por favor, digite um e-mail válido.');
-      }
-      throw new Error(err.message || 'Erro ao enviar e-mail de redefinição de senha.');
-    }
+    throw new Error('Para redefinir a senha via Supabase, certifique-se de configurar VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env.');
   }, []);
 
   const logout = useCallback(async () => {
     try {
       removeStoredToken();
-      await signOut(auth).catch(() => {});
+      if (isSupabaseConfigured && supabase) {
+        await supabase.auth.signOut().catch(() => {});
+      }
       setUserProfile(null);
       setCurrentUser(null);
     } catch (err) {

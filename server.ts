@@ -94,7 +94,7 @@ async function startServer() {
           req.user.picture || ''
         );
       }
-      if (!profile) return res.status(404).json({ error: 'Perfil não encontrado' });
+      if (!profile) return res.status(401).json({ error: 'Sessão expirada. Faça login novamente.' });
       return res.json(profile);
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Failed to fetch current profile' });

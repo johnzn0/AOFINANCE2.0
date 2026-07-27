@@ -1,5 +1,3 @@
-import { auth } from './firebase';
-
 const TOKEN_KEY = 'aofinance_auth_token';
 
 export function getStoredToken(): string | null {
@@ -23,13 +21,6 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const storedToken = getStoredToken();
   if (storedToken) {
     headers['Authorization'] = `Bearer ${storedToken}`;
-  } else if (auth.currentUser) {
-    try {
-      const token = await auth.currentUser.getIdToken();
-      headers['Authorization'] = `Bearer ${token}`;
-    } catch (e) {
-      console.warn('Failed to get auth token', e);
-    }
   }
 
   const res = await fetch(url, { ...options, headers });
