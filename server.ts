@@ -248,6 +248,7 @@ Contexto do Usuário:
     }
   });
 
+
   app.patch('/api/admin/users/:targetUid', requireAuth, async (req: AuthRequest, res) => {
     try {
       if (!req.user?.uid) return res.status(401).json({ error: 'Unauthorized' });

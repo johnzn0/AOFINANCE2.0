@@ -62,6 +62,7 @@ export default function App() {
   if (!finance.currentUser || !finance.userProfile || finance.userProfile.status !== 'approved') {
     return (
       <LoginView
+        onLoginWithGoogle={finance.loginWithGoogle}
         onLoginWithEmail={finance.loginWithEmail}
         onRegisterWithEmail={finance.registerWithEmail}
         onResetPassword={finance.resetPassword}

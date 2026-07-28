@@ -18,7 +18,9 @@ export function removeStoredToken() {
 function getLocalUsers(): any[] {
   try {
     const raw = localStorage.getItem(LOCAL_USERS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
     return [];
   }
@@ -94,9 +96,9 @@ export async function registerWithApi(email: string, pass: string, name?: string
         email: cleanEmail,
         displayName: name?.trim() || cleanEmail.split('@')[0],
         password: pass,
-        role: users.length === 0 ? 'admin' : 'admin',
-        status: 'approved',
-        plan: 'pro',
+        role: users.length === 0 ? 'admin' : 'user',
+        status: users.length === 0 ? 'approved' : 'pending',
+        plan: users.length === 0 ? 'pro' : 'free',
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString(),
       };
@@ -140,9 +142,9 @@ export async function loginWithApi(email: string, pass: string) {
           email: cleanEmail,
           displayName: cleanEmail.split('@')[0],
           password: pass,
-          role: 'admin',
-          status: 'approved',
-          plan: 'pro',
+          role: users.length === 0 ? 'admin' : 'user',
+          status: users.length === 0 ? 'approved' : 'pending',
+          plan: users.length === 0 ? 'pro' : 'free',
           createdAt: new Date().toISOString(),
           lastLoginAt: new Date().toISOString(),
         };
@@ -152,8 +154,6 @@ export async function loginWithApi(email: string, pass: string) {
         throw new Error('E-mail ou senha incorretos.');
       } else {
         user.lastLoginAt = new Date().toISOString();
-        user.status = 'approved';
-        user.role = 'admin';
         saveLocalUsers(users);
       }
 
@@ -180,7 +180,7 @@ export async function resetPasswordWithApi(email: string, newPassword?: string) 
       const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
       if (user && newPassword) {
         user.password = newPassword;
-        saveLocalUsers(user);
+        saveLocalUsers(users);
       }
       return { message: 'Senha redefinida com sucesso localmente.' };
     }

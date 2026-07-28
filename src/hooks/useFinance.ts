@@ -567,6 +567,7 @@ export function useFinance() {
     });
   }, []);
 
+
   const updateSettings = useCallback((newSettings: Partial<UserSettings>) => {
     setState((prev) => ({
       ...prev,

@@ -50,6 +50,7 @@ export const addMonths = (dateStr: string, n: number): string => {
 };
 
 export const accountName = (id: string, accounts: Account[]): string => {
+  if (!Array.isArray(accounts)) return 'Conta Principal';
   const acc = accounts.find((a) => a.id === id);
   return acc ? acc.name : 'Conta Principal';
 };

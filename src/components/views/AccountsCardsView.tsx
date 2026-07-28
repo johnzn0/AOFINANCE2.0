@@ -181,7 +181,7 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Bank Accounts & Transfers Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bank Accounts */}

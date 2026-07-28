@@ -12,7 +12,6 @@ import {
   CheckCircle,
   Sparkles,
   Bot,
-  Volume2,
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { AppState, TabPage, Transaction } from '../../types';
@@ -156,16 +155,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             </p>
           </div>
         </div>
-
-        {onOpenAssistant && (
-          <button
-            onClick={onOpenAssistant}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shrink-0 shadow-md shadow-blue-600/30 border border-blue-400/30 self-stretch sm:self-auto justify-center"
-          >
-            <Volume2 className="w-4 h-4 text-emerald-300 animate-pulse" />
-            <span>Falar com Assistente IA</span>
-          </button>
-        )}
       </div>
 
       {/* KPI Cards Row 1 */}
