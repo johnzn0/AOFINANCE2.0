@@ -14,7 +14,30 @@ export const DEFAULT_THEME_CONFIG = {
   wallpaperDim: 60,
 };
 
+// Clean, zeroed initial state for new users
 export const initialData: AppState = {
+  accounts: [
+    { id: 'acc-1', name: 'Conta Principal', type: 'checking', color: '#3B82F6' },
+  ],
+  transactions: [],
+  transfers: [],
+  cards: [],
+  cardPurchases: [],
+  recurringBills: [],
+  goals: [],
+  investments: [],
+  settings: {
+    appName: 'AOFINANCE',
+    profileName: '',
+    monthlySalary: 0,
+    categories: [...DEFAULT_CATEGORIES],
+    investmentTypes: [...DEFAULT_INV_TYPES],
+    theme: DEFAULT_THEME_CONFIG,
+  },
+};
+
+// Demo sample data used when the user clicks "Restaurar Dados Demonstrativos"
+export const sampleData: AppState = {
   accounts: [
     { id: 'acc-1', name: 'Nubank (Conta Corrente)', type: 'checking', color: '#8B5CF6' },
     { id: 'acc-2', name: 'Itaú Personalité', type: 'checking', color: '#F97316' },

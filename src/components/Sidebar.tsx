@@ -15,6 +15,7 @@ import {
   User,
   Shield,
   Download,
+  Sparkles,
 } from 'lucide-react';
 import { TabPage, AppState, UserProfile } from '../types';
 import { monthLabel } from '../utils/formatters';
@@ -26,6 +27,7 @@ interface SidebarProps {
   onShiftMonth: (delta: number) => void;
   state: AppState;
   userProfile?: UserProfile | null;
+  onOpenAssistant?: () => void;
 }
 
 export const NAV_ITEMS: { id: TabPage; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -48,6 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onShiftMonth,
   state,
   userProfile,
+  onOpenAssistant,
 }) => {
   const profileName = userProfile?.displayName || state.settings.profileName || 'Configurar Perfil';
   const initial = profileName.trim().charAt(0).toUpperCase() || '?';
@@ -96,6 +99,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
       </nav>
+
+      {/* AI Assistant Banner Card */}
+      {onOpenAssistant && (
+        <button
+          onClick={onOpenAssistant}
+          className="mt-3 p-3 bg-gradient-to-r from-blue-900/40 to-indigo-900/40 hover:from-blue-900/60 hover:to-indigo-900/60 border border-blue-500/30 rounded-xl text-left transition group relative overflow-hidden"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-4 h-4 text-blue-400 animate-pulse" />
+            <span className="text-xs font-bold text-white group-hover:text-blue-300 transition">
+              Assistente IA
+            </span>
+            <span className="ml-auto text-[9px] px-1.5 py-0.5 bg-blue-500/20 text-blue-300 font-semibold rounded-full border border-blue-500/30">
+              Voz
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-400 leading-tight">
+            Análises e conselhos por voz para suas finanças.
+          </p>
+        </button>
+      )}
 
       {/* Month picker */}
       <div className="pt-4 mt-auto border-t border-slate-800 flex flex-col gap-2">

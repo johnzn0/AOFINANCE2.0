@@ -9,6 +9,7 @@ import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { GoalContribModal } from './components/GoalContribModal';
 import { WithdrawModal } from './components/WithdrawModal';
 import { OnboardingModal } from './components/OnboardingModal';
+import { AIAssistantModal } from './components/AIAssistantModal';
 
 // Views
 import { LoginView } from './components/views/LoginView';
@@ -32,6 +33,18 @@ export default function App() {
   const [contribGoalId, setContribGoalId] = useState<string | null>(null);
   const [withdrawInvId, setWithdrawInvId] = useState<string | null>(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+
+  // Auto-open Setup Onboarding Wizard on first time login
+  React.useEffect(() => {
+    if (finance.currentUser?.uid && finance.userProfile?.status === 'approved') {
+      const onboardedKey = `aofinance_onboarded_${finance.currentUser.uid}`;
+      const alreadyOnboarded = localStorage.getItem(onboardedKey);
+      if (!alreadyOnboarded) {
+        setIsOnboardingOpen(true);
+      }
+    }
+  }, [finance.currentUser?.uid, finance.userProfile?.status]);
 
   // Loading state
   if (finance.isAuthLoading) {
@@ -49,7 +62,6 @@ export default function App() {
   if (!finance.currentUser || !finance.userProfile || finance.userProfile.status !== 'approved') {
     return (
       <LoginView
-        onLoginWithGoogle={finance.loginWithGoogle}
         onLoginWithEmail={finance.loginWithEmail}
         onRegisterWithEmail={finance.registerWithEmail}
         onResetPassword={finance.resetPassword}
@@ -106,6 +118,10 @@ export default function App() {
         target: data.goalTarget,
       });
     }
+
+    if (finance.currentUser?.uid) {
+      localStorage.setItem(`aofinance_onboarded_${finance.currentUser.uid}`, 'true');
+    }
   };
 
   return (
@@ -120,6 +136,7 @@ export default function App() {
         onShiftMonth={finance.shiftMonth}
         state={finance.state}
         userProfile={finance.userProfile}
+        onOpenAssistant={() => setIsAssistantOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -132,6 +149,7 @@ export default function App() {
           state={finance.state}
           userProfile={finance.userProfile}
           onLogout={finance.logout}
+          onOpenAssistant={() => setIsAssistantOpen(true)}
           isCloudSynced={finance.isCloudSynced}
         />
 
@@ -153,6 +171,7 @@ export default function App() {
                 cursor={finance.cursor}
                 onSelectPage={setCurrentPage}
                 onOpenGoalContrib={(id) => setContribGoalId(id)}
+                onOpenAssistant={() => setIsAssistantOpen(true)}
               />
             )}
 
@@ -215,6 +234,7 @@ export default function App() {
                 userProfile={finance.userProfile}
                 onUpdateSettings={finance.updateSettings}
                 onResetData={finance.resetDataToSample}
+                onClearData={finance.clearAllData}
                 onImportJSON={finance.importStateJSON}
                 onOpenOnboarding={() => setIsOnboardingOpen(true)}
               />
@@ -249,6 +269,13 @@ export default function App() {
         isOpen={isOnboardingOpen}
         onClose={() => setIsOnboardingOpen(false)}
         onComplete={handleOnboardingComplete}
+      />
+
+      <AIAssistantModal
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+        state={finance.state}
+        userProfile={finance.userProfile}
       />
     </div>
   );

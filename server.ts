@@ -10,6 +10,7 @@ import {
   saveUserStateByUid,
   getAllUsers,
   updateUserProfile,
+  deleteUserByUid,
   registerUserWithEmail,
   loginUserWithEmail,
   resetUserPasswordWithEmail,
@@ -203,6 +204,50 @@ async function startServer() {
     }
   });
 
+  // AI Financial Assistant Endpoint
+  app.post('/api/ai/assistant', async (req, res) => {
+    try {
+      const { prompt, userSummary } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+
+      if (!apiKey) {
+        return res.json({
+          reply: `Olá! Seja bem-vindo ao AOFINANCE! Sou o seu assistente financeiro pessoal. Estou aqui para te ajudar a organizar suas contas, bater suas metas e fazer seu dinheiro render mais.`
+        });
+      }
+
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey });
+
+      const systemInstruction = `Você é o Assistente Financeiro IA do AOFINANCE, um consultor financeiro pessoal amigável, direto, altamente capacitado e encorajador.
+Sua linguagem deve ser em português brasileiro, clara, amigável e concisa (máximo 3 a 4 frases por resposta), ideal para ser lida e ouvida em síntese de voz.
+Responda sempre diretamente à dúvida do usuário com empatia e sabedoria financeira.
+Contexto do Usuário:
+- Nome: ${userSummary?.name || 'Usuário'}
+- Receitas Mensais: R$ ${userSummary?.income || 0}
+- Despesas Mensais: R$ ${userSummary?.expense || 0}
+- Patrimônio Total: R$ ${userSummary?.netWorth || 0}
+- Metas Cadastradas: ${userSummary?.goalsCount || 0}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: prompt || 'Olá! Faça um cumprimento de boas-vindas e se coloque à disposição para ajudar.',
+        config: {
+          systemInstruction,
+          temperature: 0.7,
+        },
+      });
+
+      const reply = response.text || 'Olá! Como posso te ajudar com a gestão das suas finanças hoje?';
+      return res.json({ reply });
+    } catch (err: any) {
+      console.error('Error in /api/ai/assistant:', err);
+      res.json({
+        reply: 'Olá! Seja bem-vindo ao AOFINANCE. Eu sou o seu assistente financeiro pessoal. Como posso te ajudar hoje?'
+      });
+    }
+  });
+
   app.patch('/api/admin/users/:targetUid', requireAuth, async (req: AuthRequest, res) => {
     try {
       if (!req.user?.uid) return res.status(401).json({ error: 'Unauthorized' });
@@ -217,6 +262,27 @@ async function startServer() {
     } catch (err: any) {
       console.error('Error updating user:', err);
       res.status(500).json({ error: err.message || 'Failed to update user' });
+    }
+  });
+
+  app.delete('/api/admin/users/:targetUid', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.uid) return res.status(401).json({ error: 'Unauthorized' });
+      const currentProfile = await getUserProfileByUid(req.user.uid);
+      if (currentProfile?.role !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden: Admin access required' });
+      }
+
+      const { targetUid } = req.params;
+      if (targetUid === req.user.uid) {
+        return res.status(400).json({ error: 'Você não pode excluir sua própria conta de administrador.' });
+      }
+
+      await deleteUserByUid(targetUid);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error('Error deleting user:', err);
+      res.status(500).json({ error: err.message || 'Failed to delete user' });
     }
   });
 

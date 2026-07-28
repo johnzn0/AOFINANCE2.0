@@ -14,9 +14,10 @@ import {
   Zap,
   Crown,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { UserProfile, UserStatus, UserRole, UserPlan } from '../../types';
-import { fetchAdminUsers, updateAdminUser } from '../../lib/api';
+import { fetchAdminUsers, updateAdminUser, deleteAdminUser } from '../../lib/api';
 
 const ADMIN_EMAIL = 'johnozzi21@gmail.com';
 
@@ -79,6 +80,19 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUserEmail }) => {
       loadUsers();
     } catch (err) {
       alert('Erro ao alterar função.');
+    }
+  };
+
+  const handleDeleteUser = async (uid: string, targetEmail: string) => {
+    if (confirm(`ATENÇÃO: Tem certeza que deseja EXCLUIR DEFINITIVAMENTE o usuário ${targetEmail}? Esta ação removerá a conta e todos os dados dele.`)) {
+      try {
+        await deleteAdminUser(uid);
+        setActionSuccess(`Usuário ${targetEmail} foi excluído do sistema.`);
+        setTimeout(() => setActionSuccess(null), 3000);
+        loadUsers();
+      } catch (err: any) {
+        alert(err?.message || 'Erro ao excluir usuário.');
+      }
     }
   };
 
@@ -318,6 +332,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUserEmail }) => {
                                 <span>Bloquear</span>
                               </button>
                             )}
+
+                            <button
+                              onClick={() => handleDeleteUser(u.uid, u.email)}
+                              className="px-2 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/40 rounded-lg font-semibold text-[11px] transition flex items-center gap-1"
+                              title="Excluir Usuário Definitivamente"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span className="sr-only sm:not-sr-only">Excluir</span>
+                            </button>
                           </div>
                         )}
                       </td>

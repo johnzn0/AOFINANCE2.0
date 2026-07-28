@@ -220,6 +220,17 @@ export async function updateUserProfile(uid: string, data: Partial<{ role: strin
   }
 }
 
+export async function deleteUserByUid(uid: string) {
+  try {
+    await db.delete(userState).where(eq(userState.uid, uid));
+    await db.delete(users).where(eq(users.uid, uid));
+    return { success: true };
+  } catch (error) {
+    console.error('deleteUserByUid SQL error:', error);
+    throw new Error('Failed to delete user from Cloud SQL', { cause: error });
+  }
+}
+
 export async function getUserStateByUid(uid: string) {
   try {
     const [record] = await db.select().from(userState).where(eq(userState.uid, uid));

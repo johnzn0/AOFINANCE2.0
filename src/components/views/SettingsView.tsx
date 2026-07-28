@@ -26,6 +26,7 @@ interface SettingsViewProps {
   userProfile?: UserProfile | null;
   onUpdateSettings: (newSettings: Partial<UserSettings>) => void;
   onResetData: () => void;
+  onClearData?: () => void;
   onImportJSON: (jsonStr: string) => boolean;
   onOpenOnboarding: () => void;
 }
@@ -35,6 +36,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   userProfile,
   onUpdateSettings,
   onResetData,
+  onClearData,
   onImportJSON,
   onOpenOnboarding,
 }) => {
@@ -48,6 +50,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [confirmPass, setConfirmPass] = useState('');
   const [passLoading, setPassLoading] = useState(false);
   const [passMsg, setPassMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Confirmation Modals State
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [showRestoreConfirmModal, setShowRestoreConfirmModal] = useState(false);
 
   const isPro = userProfile?.plan === 'pro' || userProfile?.role === 'admin';
 
@@ -423,28 +429,134 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <p className="text-xs text-emerald-400 font-medium">{importStatus}</p>
         )}
 
-        <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-xs">
-          <div>
-            <span className="font-semibold text-slate-300 block">Restaurar Dados Demonstrativos</span>
-            <span className="text-[11px] text-slate-500">
-              Recarrega o estado de exemplo com transações, contas e metas pré-configuradas.
-            </span>
+        <div className="pt-4 border-t border-slate-800 space-y-4 text-xs">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+            <div>
+              <span className="font-semibold text-slate-200 block">Restaurar Dados Demonstrativos</span>
+              <span className="text-[11px] text-slate-500">
+                Recarrega o estado inicial de exemplo com transações, contas e metas pré-configuradas.
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowRestoreConfirmModal(true)}
+              className="px-3.5 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 rounded-xl font-semibold transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restaurar Exemplo</span>
+            </button>
           </div>
 
-          <button
-            onClick={() => {
-              if (confirm('Deseja mesmo restaurar os dados de demonstração?')) {
-                onResetData();
-                alert('Dados restaurados com sucesso!');
-              }
-            }}
-            className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-lg font-semibold transition flex items-center gap-1.5 shrink-0"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Resetar Dados</span>
-          </button>
+          {onClearData && (
+            <div className="pt-3 border-t border-slate-800/60 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+              <div>
+                <span className="font-semibold text-rose-300 block">Zerar Todos os Dados (Começar do Zero)</span>
+                <span className="text-[11px] text-slate-500">
+                  Remove todas as suas transações, cartões, faturas e investimentos para iniciar do zero.
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowClearConfirmModal(true)}
+                className="px-3.5 py-2 bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-xl font-semibold transition flex items-center gap-2 shrink-0 self-start sm:self-auto shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Zerar Tudo</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Modal Confirmação: Zerar Tudo */}
+      {showClearConfirmModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-rose-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-base text-white">Confirmar ZERAR TUDO?</h3>
+                <p className="text-xs text-rose-300">Ação irreversível de limpeza</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+              Você está prestes a remover <strong className="text-rose-400">TODAS</strong> as suas transações, cartões de crédito, compras, lançamentos recorrentes e investimentos. Todas as telas voltarão ao estado limpo (R$ 0,00).
+            </p>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowClearConfirmModal(false)}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold text-xs transition"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (onClearData) onClearData();
+                  setShowClearConfirmModal(false);
+                  alert('Todos os dados foram zerados com sucesso!');
+                }}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-rose-600/30"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Sim, Zerar Tudo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmação: Restaurar Exemplo */}
+      {showRestoreConfirmModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-amber-300">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <RotateCcw className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-base text-white">Restaurar Dados Exemplo?</h3>
+                <p className="text-xs text-amber-200">Preenchimento de dados de teste</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+              Isso substituirá seus registros atuais por um conjunto fictício de transações, contas de teste, metas e investimentos demonstrativos.
+            </p>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowRestoreConfirmModal(false)}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold text-xs transition"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onResetData();
+                  setShowRestoreConfirmModal(false);
+                  alert('Dados demonstrativos carregados com sucesso!');
+                }}
+                className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-600/30"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Sim, Carregar Exemplo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

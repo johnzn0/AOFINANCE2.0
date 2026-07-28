@@ -93,3 +93,9 @@ export async function updateAdminUser(targetUid: string, data: any) {
     body: JSON.stringify(data),
   });
 }
+
+export async function deleteAdminUser(targetUid: string) {
+  return fetchWithAuth(`/api/admin/users/${targetUid}`, {
+    method: 'DELETE',
+  });
+}

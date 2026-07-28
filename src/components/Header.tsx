@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield, Sparkles } from 'lucide-react';
 import { TabPage, AppState, UserProfile } from '../types';
 import { monthLabel } from '../utils/formatters';
 
@@ -11,6 +11,7 @@ interface HeaderProps {
   state: AppState;
   userProfile?: UserProfile | null;
   onLogout?: () => void;
+  onOpenAssistant?: () => void;
   isCloudSynced?: boolean;
 }
 
@@ -22,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   state,
   userProfile,
   onLogout,
+  onOpenAssistant,
   isCloudSynced = true,
 }) => {
   const titles: Record<TabPage, { title: string; sub: string }> = {
@@ -52,6 +54,17 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Mobile period & profile control */}
       <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+        {onOpenAssistant && (
+          <button
+            onClick={onOpenAssistant}
+            className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-blue-600/30 to-indigo-600/30 hover:from-blue-600/50 hover:to-indigo-600/50 border border-blue-500/40 text-blue-200 rounded-lg text-xs font-semibold transition shadow-sm"
+            title="Abrir Assistente de Voz IA"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+            <span>Assistente IA</span>
+          </button>
+        )}
+
         {userProfile?.role === 'admin' && (
           <button
             onClick={() => onSelectPage('admin')}

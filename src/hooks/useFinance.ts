@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppState, Transaction, Account, Transfer, CreditCard, CardPurchase, RecurringBill, Goal, Investment, UserSettings, UserProfile } from '../types';
-import { initialData } from '../data/initialData';
+import { initialData, sampleData } from '../data/initialData';
 import { uid, todayISO, round2, addMonths } from '../utils/formatters';
 import {
   syncUserWithCloudSql,
@@ -57,6 +57,21 @@ export function useFinance() {
     let isMounted = true;
 
     async function checkSession() {
+      // If running inside a popup opened by Google OAuth:
+      if (window.opener && window.opener !== window && (window.location.hash.includes('access_token') || window.location.search.includes('code'))) {
+        const supabase = getSupabase();
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            try {
+              window.opener.postMessage({ type: 'SUPABASE_AUTH_SUCCESS' }, '*');
+            } catch (e) {}
+            window.close();
+            return;
+          }
+        }
+      }
+
       try {
         const profile = await getCurrentUserProfile();
         if (profile && isMounted) {
@@ -75,35 +90,48 @@ export function useFinance() {
 
       const supabase = getSupabase();
       if (supabase) {
+        const syncUser = async (user: any) => {
+          if (!isMounted || !user) return;
+          const email = user.email || '';
+          const name = user.user_metadata?.full_name || email.split('@')[0];
+          try {
+            const res = await fetch('/api/auth/sync', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                uid: user.id,
+                email,
+                displayName: name,
+              }),
+            });
+            const prof = await res.json();
+            if (prof && !prof.error) {
+              setUserProfile(prof);
+              setCurrentUser({
+                uid: prof.uid,
+                email: prof.email,
+                displayName: prof.displayName,
+              });
+            }
+          } catch (e) {
+            console.error('Failed to sync Supabase user with Cloud SQL', e);
+          }
+        };
+
         const { data: subData } = supabase.auth.onAuthStateChange(async (event, session) => {
           if (!isMounted) return;
           if (session?.user) {
-            const email = session.user.email || '';
-            const name = session.user.user_metadata?.full_name || email.split('@')[0];
-            try {
-              // Sync Supabase user with Cloud SQL
-              const res = await fetch('/api/auth/sync', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  uid: session.user.id,
-                  email,
-                  displayName: name,
-                }),
-              });
-              const prof = await res.json();
-              if (prof && !prof.error) {
-                setUserProfile(prof);
-                setCurrentUser({
-                  uid: prof.uid,
-                  email: prof.email,
-                  displayName: prof.displayName,
-                });
-              }
-            } catch (e) {
-              console.error('Failed to sync Supabase user with Cloud SQL', e);
+            await syncUser(session.user);
+
+            // If this is a popup, notify parent and close
+            if (window.opener && window.opener !== window) {
+              try {
+                window.opener.postMessage({ type: 'SUPABASE_AUTH_SUCCESS' }, '*');
+              } catch (e) {}
+              window.close();
+              return;
             }
           }
           setIsAuthLoading(false);
@@ -112,6 +140,7 @@ export function useFinance() {
         // Check current session
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          await syncUser(session.user);
           setIsAuthLoading(false);
           return;
         }
@@ -120,10 +149,39 @@ export function useFinance() {
       setIsAuthLoading(false);
     }
 
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.data?.type === 'SUPABASE_AUTH_SUCCESS' && isMounted) {
+        const supabase = getSupabase();
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const email = session.user.email || '';
+            const name = session.user.user_metadata?.full_name || email.split('@')[0];
+            try {
+              const res = await fetch('/api/auth/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: session.user.id, email, displayName: name }),
+              });
+              const prof = await res.json();
+              if (prof && !prof.error) {
+                setUserProfile(prof);
+                setCurrentUser({ uid: prof.uid, email: prof.email, displayName: prof.displayName });
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
     checkSession();
 
     return () => {
       isMounted = false;
+      window.removeEventListener('message', handleMessage);
     };
   }, []);
 
@@ -524,8 +582,48 @@ export function useFinance() {
   }, []);
 
   const resetDataToSample = useCallback(() => {
-    setState(initialData);
-  }, []);
+    const freshData = JSON.parse(JSON.stringify(sampleData));
+    setState(freshData);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(freshData));
+      if (currentUser) {
+        saveStateToCloudSql(freshData).catch((err) => {
+          console.warn('Failed to sync reset state to Cloud SQL', err);
+        });
+      }
+    } catch (e) {
+      console.error('Error in resetDataToSample:', e);
+    }
+  }, [currentUser]);
+
+  const clearAllData = useCallback(() => {
+    const emptyData: AppState = {
+      accounts: [
+        { id: 'acc-1', name: 'Conta Principal', type: 'checking', color: '#3B82F6' },
+      ],
+      transactions: [],
+      transfers: [],
+      cards: [],
+      cardPurchases: [],
+      recurringBills: [],
+      goals: [],
+      investments: [],
+      settings: {
+        ...initialData.settings,
+      },
+    };
+    setState(emptyData);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyData));
+      if (currentUser) {
+        saveStateToCloudSql(emptyData).catch((err) => {
+          console.warn('Failed to sync clear state to Cloud SQL', err);
+        });
+      }
+    } catch (e) {
+      console.error('Error in clearAllData:', e);
+    }
+  }, [currentUser]);
 
   const importStateJSON = useCallback((jsonStr: string) => {
     try {
@@ -551,13 +649,25 @@ export function useFinance() {
     try {
       const supabase = getSupabase();
       if (supabase) {
-        const { error } = await supabase.auth.signInWithOAuth({
+        const isInIframe = window.self !== window.top;
+        const redirectUrl = window.location.origin;
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin,
+            redirectTo: redirectUrl,
+            skipBrowserRedirect: isInIframe,
           },
         });
+
         if (error) throw error;
+
+        if (isInIframe && data?.url) {
+          const popup = window.open(data.url, '_blank', 'width=500,height=600');
+          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            window.location.href = data.url;
+          }
+        }
         return;
       }
       throw new Error('Supabase não está configurado. Por favor, adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no seu .env para ativar a autenticação com Google via Supabase.');
@@ -601,9 +711,17 @@ export function useFinance() {
     }
   }, []);
 
-  const resetPassword = useCallback(async (resetEmail: string) => {
+  const resetPassword = useCallback(async (resetEmail: string, newPass?: string) => {
     const cleanEmail = resetEmail.trim().toLowerCase();
     if (!cleanEmail) throw new Error('Por favor, informe seu e-mail.');
+
+    if (newPass) {
+      if (newPass.length < 6) {
+        throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
+      }
+      await resetPasswordWithApi(cleanEmail, newPass);
+      return;
+    }
 
     const meta = import.meta as any;
     const supUrl = meta.env?.VITE_SUPABASE_URL || '';
@@ -682,6 +800,7 @@ export function useFinance() {
     withdrawInvestment,
     updateSettings,
     resetDataToSample,
+    clearAllData,
     importStateJSON,
   };
 }

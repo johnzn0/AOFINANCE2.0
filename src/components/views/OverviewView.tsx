@@ -10,6 +10,9 @@ import {
   ArrowDownRight,
   Calendar,
   CheckCircle,
+  Sparkles,
+  Bot,
+  Volume2,
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { AppState, TabPage, Transaction } from '../../types';
@@ -20,6 +23,7 @@ interface OverviewViewProps {
   cursor: Date;
   onSelectPage: (page: TabPage) => void;
   onOpenGoalContrib: (goalId: string) => void;
+  onOpenAssistant?: () => void;
 }
 
 export const OverviewView: React.FC<OverviewViewProps> = ({
@@ -27,6 +31,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   cursor,
   onSelectPage,
   onOpenGoalContrib,
+  onOpenAssistant,
 }) => {
   const curKey = monthKey(cursor);
   const monthTx = state.transactions.filter((t) => t.date.slice(0, 7) === curKey);
@@ -125,6 +130,44 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* AI Assistant Insight Notification Banner */}
+      <div className="bg-gradient-to-r from-blue-950/80 via-slate-900 to-indigo-950/80 border border-blue-500/30 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shrink-0 shadow-md shadow-blue-500/20 mt-0.5">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-serif font-bold text-white text-sm">Notificação do Assistente IA</span>
+              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[10px] font-semibold rounded-full border border-blue-500/30">
+                Ativo em Tempo Real
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+              {alerts.length > 0 ? (
+                <span className="text-amber-300 font-medium">⚠️ {alerts[0]}</span>
+              ) : insights.length > 0 ? (
+                <span className="text-emerald-300 font-medium">💡 {insights[0]}</span>
+              ) : (
+                <span>
+                  Seu patrimônio total está em <strong className="text-white">{fmt(netWorth)}</strong>. As contas estão organizadas e sincronizadas.
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+
+        {onOpenAssistant && (
+          <button
+            onClick={onOpenAssistant}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shrink-0 shadow-md shadow-blue-600/30 border border-blue-400/30 self-stretch sm:self-auto justify-center"
+          >
+            <Volume2 className="w-4 h-4 text-emerald-300 animate-pulse" />
+            <span>Falar com Assistente IA</span>
+          </button>
+        )}
+      </div>
+
       {/* KPI Cards Row 1 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition">
