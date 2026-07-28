@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../db/users';
+import { verifyToken } from '../db/users.ts';
 
 export interface AuthRequest extends Request {
   user?: {
