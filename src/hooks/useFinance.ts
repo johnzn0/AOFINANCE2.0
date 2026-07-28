@@ -3,9 +3,9 @@ import { AppState, Transaction, Account, Transfer, CreditCard, CardPurchase, Rec
 import { initialData, sampleData } from '../data/initialData';
 import { uid, todayISO, round2, addMonths } from '../utils/formatters';
 import {
-  syncUserWithCloudSql,
-  loadStateFromCloudSql,
-  saveStateToCloudSql,
+  syncUserWithSupabase,
+  loadStateFromSupabase,
+  saveStateToSupabase,
   loginWithApi,
   registerWithApi,
   resetPasswordWithApi,
@@ -91,34 +91,29 @@ export function useFinance() {
       const supabase = getSupabase();
       if (supabase) {
         const syncUser = async (user: any) => {
-          if (!isMounted || !user) return;
-          const email = user.email || '';
-          const name = user.user_metadata?.full_name || email.split('@')[0];
-          try {
-            const res = await fetch('/api/auth/sync', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                uid: user.id,
-                email,
-                displayName: name,
-              }),
-            });
-            const prof = await res.json();
-            if (prof && !prof.error) {
-              setUserProfile(prof);
-              setCurrentUser({
-                uid: prof.uid,
-                email: prof.email,
-                displayName: prof.displayName,
-              });
-            }
-          } catch (e) {
-            console.error('Failed to sync Supabase user with Cloud SQL', e);
-          }
-        };
+  if (!isMounted || !user) return;
+  const email = user.email || '';
+  const name = user.user_metadata?.full_name || email.split('@')[0];
+  try {
+    const prof = {
+      uid: user.id,
+      email: email,
+      displayName: name,
+      role: 'user',
+      status: 'approved',
+      plan: 'free',
+      createdAt: user.created_at,
+    };
+    setUserProfile(prof as any);
+    setCurrentUser({
+      uid: prof.uid,
+      email: prof.email,
+      displayName: prof.displayName,
+    });
+  } catch (e) {
+    console.error('Failed to sync user', e);
+  }
+};
 
         const { data: subData } = supabase.auth.onAuthStateChange(async (event, session) => {
           if (!isMounted) return;
@@ -188,7 +183,7 @@ export function useFinance() {
   // Load state from Cloud SQL when user changes
   useEffect(() => {
     if (!currentUser) return;
-    loadStateFromCloudSql()
+    loadStateFromSupabase()
       .then((cloudState) => {
         if (cloudState) {
           setState({
@@ -212,7 +207,7 @@ export function useFinance() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       if (currentUser) {
-        saveStateToCloudSql(state)
+        saveStateToSupabase(state)
           .then(() => {
             setIsCloudSynced(true);
           })
@@ -588,7 +583,7 @@ export function useFinance() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(freshData));
       if (currentUser) {
-        saveStateToCloudSql(freshData).catch((err) => {
+        saveStateToSupabase(freshData).catch((err) => {
           console.warn('Failed to sync reset state to Cloud SQL', err);
         });
       }
@@ -617,7 +612,7 @@ export function useFinance() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyData));
       if (currentUser) {
-        saveStateToCloudSql(emptyData).catch((err) => {
+        saveStateToSupabase(emptyData).catch((err) => {
           console.warn('Failed to sync clear state to Cloud SQL', err);
         });
       }
