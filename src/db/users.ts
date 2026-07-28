@@ -127,6 +127,20 @@ export async function loginUserWithEmail(email: string, pass: string) {
   return updated;
 }
 
+export async function resetUserPasswordWithEmail(email: string, newPassword?: string) {
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await getUserByEmail(cleanEmail);
+  if (!user) {
+    throw new Error('Nenhum usuário cadastrado encontrado com este e-mail.');
+  }
+  if (newPassword) {
+    const newHash = hashPassword(newPassword);
+    await db.update(users).set({ passwordHash: newHash }).where(eq(users.uid, user.uid));
+    return { success: true, message: 'Senha redefinida com sucesso!' };
+  }
+  return { success: true, message: `Solicitação de redefinição registrada para ${cleanEmail}.` };
+}
+
 export async function getOrCreateUser(uid: string, email: string, displayName?: string, photoURL?: string) {
   try {
     const cleanEmail = email.toLowerCase().trim();

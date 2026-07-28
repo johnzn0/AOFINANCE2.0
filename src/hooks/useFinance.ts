@@ -8,10 +8,11 @@ import {
   saveStateToCloudSql,
   loginWithApi,
   registerWithApi,
+  resetPasswordWithApi,
   getCurrentUserProfile,
   removeStoredToken,
 } from '../lib/api';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase';
 
 const STORAGE_KEY = 'aofinance_app_state_v2';
 
@@ -72,7 +73,8 @@ export function useFinance() {
         // No valid local token
       }
 
-      if (isSupabaseConfigured && supabase) {
+      const supabase = getSupabase();
+      if (supabase) {
         const { data: subData } = supabase.auth.onAuthStateChange(async (event, session) => {
           if (!isMounted) return;
           if (session?.user) {
@@ -547,7 +549,8 @@ export function useFinance() {
 
   const loginWithGoogle = useCallback(async () => {
     try {
-      if (isSupabaseConfigured && supabase) {
+      const supabase = getSupabase();
+      if (supabase) {
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -602,7 +605,12 @@ export function useFinance() {
     const cleanEmail = resetEmail.trim().toLowerCase();
     if (!cleanEmail) throw new Error('Por favor, informe seu e-mail.');
 
-    if (isSupabaseConfigured && supabase) {
+    const meta = import.meta as any;
+    const supUrl = meta.env?.VITE_SUPABASE_URL || '';
+    const isRealSupabaseUrl = supUrl.includes('supabase.co') || supUrl.includes('supabase.in');
+    const supabase = getSupabase();
+
+    if (supabase && isRealSupabaseUrl) {
       const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: window.location.origin,
       });
@@ -610,13 +618,21 @@ export function useFinance() {
       return;
     }
 
-    throw new Error('Para redefinir a senha via Supabase, certifique-se de configurar VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env.');
+    try {
+      await resetPasswordWithApi(cleanEmail);
+    } catch (err: any) {
+      if (!isRealSupabaseUrl && supUrl) {
+        throw new Error(`O VITE_SUPABASE_URL informado ("${supUrl}") é o domínio do site (Netlify), e não a URL da API do Supabase. A URL do Supabase deve estar no formato https://<seu-projeto>.supabase.co.`);
+      }
+      throw err;
+    }
   }, []);
 
   const logout = useCallback(async () => {
     try {
       removeStoredToken();
-      if (isSupabaseConfigured && supabase) {
+      const supabase = getSupabase();
+      if (supabase) {
         await supabase.auth.signOut().catch(() => {});
       }
       setUserProfile(null);

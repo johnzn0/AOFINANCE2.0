@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
@@ -11,6 +12,7 @@ import {
   updateUserProfile,
   registerUserWithEmail,
   loginUserWithEmail,
+  resetUserPasswordWithEmail,
   generateToken,
 } from './src/db/users.ts';
 
@@ -78,6 +80,21 @@ async function startServer() {
     } catch (err: any) {
       console.error('Error in /api/auth/login:', err);
       res.status(400).json({ error: err.message || 'Falha ao realizar login.' });
+    }
+  });
+
+  // Reset password directly in Cloud SQL
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const { email, newPassword } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: 'O e-mail é obrigatório.' });
+      }
+      const result = await resetUserPasswordWithEmail(email, newPassword);
+      return res.json(result);
+    } catch (err: any) {
+      console.error('Error in /api/auth/reset-password:', err);
+      res.status(400).json({ error: err.message || 'Falha ao redefinir a senha.' });
     }
   });
 

@@ -86,13 +86,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
       await onLoginWithGoogle();
     } catch (err: any) {
       console.error('Google Auth error:', err);
-      let msg = 'Erro ao conectar com Google.';
-      if (err.code === 'auth/popup-blocked') {
+      let msg = err?.message || 'Erro ao conectar com o Google.';
+      if (err?.code === 'auth/popup-blocked') {
         msg = 'O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.';
-      } else if (err.code === 'auth/popup-closed-by-user') {
+      } else if (err?.code === 'auth/popup-closed-by-user') {
         msg = 'Janela de login fechada antes da conclusão.';
-      } else if (err.code === 'auth/unauthorized-domain') {
-        msg = 'Domínio não autorizado no Firebase Console. Utilize a demonstração rápida.';
       }
       setErrorMsg(msg);
     } finally {

@@ -56,6 +56,13 @@ export async function loginWithApi(email: string, pass: string) {
   return data;
 }
 
+export async function resetPasswordWithApi(email: string, newPassword?: string) {
+  return fetchWithAuth('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, newPassword }),
+  });
+}
+
 export async function getCurrentUserProfile() {
   return fetchWithAuth('/api/auth/me', { method: 'GET' });
 }

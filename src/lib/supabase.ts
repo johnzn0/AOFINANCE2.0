@@ -1,11 +1,27 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const meta = import.meta as any;
-const supabaseUrl = meta.env?.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = meta.env?.VITE_SUPABASE_ANON_KEY || '';
+let instance: SupabaseClient | null = null;
 
-export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+export function getSupabase(): SupabaseClient | null {
+  if (instance) return instance;
 
-export const isSupabaseConfigured = Boolean(supabase);
+  const meta = import.meta as any;
+  const url = meta.env?.VITE_SUPABASE_URL || (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_URL : '') || '';
+  const key = meta.env?.VITE_SUPABASE_ANON_KEY || (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_ANON_KEY : '') || '';
+
+  let supabaseUrl = url.trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
+  const supabaseAnonKey = key.trim();
+
+  if (supabaseUrl && supabaseAnonKey) {
+    instance = createClient(supabaseUrl, supabaseAnonKey);
+  }
+
+  return instance;
+}
+
+export const supabase = getSupabase();
+
+export function isSupabaseConfigured(): boolean {
+  return Boolean(getSupabase());
+}
+
