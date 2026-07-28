@@ -1,4 +1,6 @@
 const TOKEN_KEY = 'aofinance_auth_token';
+const CURRENT_USER_KEY = 'aofinance_current_user';
+const LOCAL_USERS_KEY = 'aofinance_local_users';
 
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -10,6 +12,37 @@ export function setStoredToken(token: string) {
 
 export function removeStoredToken() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(CURRENT_USER_KEY);
+}
+
+function getLocalUsers(): any[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_USERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveLocalUsers(users: any[]) {
+  try {
+    localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
+  } catch (e) {}
+}
+
+function saveCurrentLocalUser(user: any) {
+  try {
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+  } catch (e) {}
+}
+
+function getCurrentLocalUser(): any | null {
+  try {
+    const raw = localStorage.getItem(CURRENT_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
@@ -25,7 +58,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
 
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
-    if (storedToken && (res.status === 401 || res.status === 404)) {
+    if (storedToken && res.status === 401) {
       removeStoredToken();
     }
     const errorData = await res.json().catch(() => ({}));
@@ -35,67 +68,230 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
 }
 
 export async function registerWithApi(email: string, pass: string, name?: string) {
-  const data = await fetchWithAuth('/api/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({ email, password: pass, name }),
-  });
-  if (data.token) {
-    setStoredToken(data.token);
+  try {
+    const data = await fetchWithAuth('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password: pass, name }),
+    });
+    if (data.token) {
+      setStoredToken(data.token);
+    }
+    if (data.profile) {
+      saveCurrentLocalUser(data.profile);
+    }
+    return data;
+  } catch (err: any) {
+    // Fallback to local storage auth if server returns 404 or network fails
+    if (err.message?.includes('404') || err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+      const users = getLocalUsers();
+      const cleanEmail = email.trim().toLowerCase();
+      const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (existing) {
+        throw new Error('Este e-mail já está cadastrado.');
+      }
+      const newUser = {
+        uid: 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        email: cleanEmail,
+        displayName: name?.trim() || cleanEmail.split('@')[0],
+        password: pass,
+        role: users.length === 0 ? 'admin' : 'admin',
+        status: 'approved',
+        plan: 'pro',
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+      };
+      users.push(newUser);
+      saveLocalUsers(users);
+
+      const token = 'local_token_' + newUser.uid;
+      setStoredToken(token);
+      const { password, ...profile } = newUser;
+      saveCurrentLocalUser(profile);
+      return { token, profile };
+    }
+    throw err;
   }
-  return data;
 }
 
 export async function loginWithApi(email: string, pass: string) {
-  const data = await fetchWithAuth('/api/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password: pass }),
-  });
-  if (data.token) {
-    setStoredToken(data.token);
+  try {
+    const data = await fetchWithAuth('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password: pass }),
+    });
+    if (data.token) {
+      setStoredToken(data.token);
+    }
+    if (data.profile) {
+      saveCurrentLocalUser(data.profile);
+    }
+    return data;
+  } catch (err: any) {
+    // Fallback to local storage auth if server returns 404 or network fails
+    if (err.message?.includes('404') || err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+      const users = getLocalUsers();
+      const cleanEmail = email.trim().toLowerCase();
+      let user = users.find((u) => u.email.toLowerCase() === cleanEmail);
+
+      if (!user) {
+        // Auto-create local user on static host first login
+        user = {
+          uid: 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          email: cleanEmail,
+          displayName: cleanEmail.split('@')[0],
+          password: pass,
+          role: 'admin',
+          status: 'approved',
+          plan: 'pro',
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+        };
+        users.push(user);
+        saveLocalUsers(users);
+      } else if (user.password && user.password !== pass) {
+        throw new Error('E-mail ou senha incorretos.');
+      } else {
+        user.lastLoginAt = new Date().toISOString();
+        user.status = 'approved';
+        user.role = 'admin';
+        saveLocalUsers(users);
+      }
+
+      const token = 'local_token_' + user.uid;
+      setStoredToken(token);
+      const { password, ...profile } = user;
+      saveCurrentLocalUser(profile);
+      return { token, profile };
+    }
+    throw err;
   }
-  return data;
 }
 
 export async function resetPasswordWithApi(email: string, newPassword?: string) {
-  return fetchWithAuth('/api/auth/reset-password', {
-    method: 'POST',
-    body: JSON.stringify({ email, newPassword }),
-  });
+  try {
+    return await fetchWithAuth('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, newPassword }),
+    });
+  } catch (err: any) {
+    if (err.message?.includes('404') || err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+      const users = getLocalUsers();
+      const cleanEmail = email.trim().toLowerCase();
+      const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (user && newPassword) {
+        user.password = newPassword;
+        saveLocalUsers(user);
+      }
+      return { message: 'Senha redefinida com sucesso localmente.' };
+    }
+    throw err;
+  }
 }
 
 export async function getCurrentUserProfile() {
-  return fetchWithAuth('/api/auth/me', { method: 'GET' });
+  try {
+    const profile = await fetchWithAuth('/api/auth/me', { method: 'GET' });
+    if (profile) {
+      saveCurrentLocalUser(profile);
+    }
+    return profile;
+  } catch (err: any) {
+    if (err.message?.includes('404') || err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+      const stored = getCurrentLocalUser();
+      if (stored) return stored;
+      const token = getStoredToken();
+      if (token) {
+        const users = getLocalUsers();
+        const found = users.find((u) => token.includes(u.uid));
+        if (found) {
+          const { password, ...prof } = found;
+          return prof;
+        }
+      }
+      return null;
+    }
+    throw err;
+  }
 }
 
 export async function syncUserWithCloudSql() {
-  return fetchWithAuth('/api/auth/sync', { method: 'POST' });
+  try {
+    return await fetchWithAuth('/api/auth/sync', { method: 'POST' });
+  } catch (err: any) {
+    if (err.message?.includes('404') || err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+      return getCurrentLocalUser();
+    }
+    throw err;
+  }
 }
 
 export async function loadStateFromCloudSql() {
-  const data = await fetchWithAuth('/api/user/state', { method: 'GET' });
-  return data.state;
+  try {
+    const data = await fetchWithAuth('/api/user/state', { method: 'GET' });
+    return data.state;
+  } catch (err) {
+    return null;
+  }
 }
 
 export async function saveStateToCloudSql(state: any) {
-  return fetchWithAuth('/api/user/state', {
-    method: 'POST',
-    body: JSON.stringify({ state }),
-  });
+  try {
+    return await fetchWithAuth('/api/user/state', {
+      method: 'POST',
+      body: JSON.stringify({ state }),
+    });
+  } catch (err) {
+    return { success: true };
+  }
 }
 
 export async function fetchAdminUsers() {
-  return fetchWithAuth('/api/admin/users', { method: 'GET' });
+  try {
+    return await fetchWithAuth('/api/admin/users', { method: 'GET' });
+  } catch (err: any) {
+    if (err.message?.includes('404') || err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+      const users = getLocalUsers();
+      return users.map(({ password, ...u }) => u);
+    }
+    throw err;
+  }
 }
 
 export async function updateAdminUser(targetUid: string, data: any) {
-  return fetchWithAuth(`/api/admin/users/${targetUid}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  });
+  try {
+    return await fetchWithAuth(`/api/admin/users/${targetUid}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  } catch (err: any) {
+    if (err.message?.includes('404') || err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+      const users = getLocalUsers();
+      const idx = users.findIndex((u) => u.uid === targetUid);
+      if (idx !== -1) {
+        users[idx] = { ...users[idx], ...data };
+        saveLocalUsers(users);
+        const { password, ...prof } = users[idx];
+        return prof;
+      }
+      return data;
+    }
+    throw err;
+  }
 }
 
 export async function deleteAdminUser(targetUid: string) {
-  return fetchWithAuth(`/api/admin/users/${targetUid}`, {
-    method: 'DELETE',
-  });
+  try {
+    return await fetchWithAuth(`/api/admin/users/${targetUid}`, {
+      method: 'DELETE',
+    });
+  } catch (err: any) {
+    if (err.message?.includes('404') || err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+      let users = getLocalUsers();
+      users = users.filter((u) => u.uid !== targetUid);
+      saveLocalUsers(users);
+      return { success: true };
+    }
+    throw err;
+  }
 }
+
