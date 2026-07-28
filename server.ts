@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 
-import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
+import { requireAuth, AuthRequest } from './src/middleware/auth';
 import {
   getOrCreateUser,
   getUserProfileByUid,
@@ -15,7 +15,7 @@ import {
   loginUserWithEmail,
   resetUserPasswordWithEmail,
   generateToken,
-} from './src/db/users.ts';
+} from './src/db/users';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
