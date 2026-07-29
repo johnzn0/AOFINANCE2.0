@@ -180,7 +180,7 @@ export function useFinance() {
     };
   }, []);
 
-  // Load state from Cloud SQL when user changes
+  // Load state from Supabase when user changes
   useEffect(() => {
     if (!currentUser) return;
     loadStateFromSupabase()
@@ -198,11 +198,11 @@ export function useFinance() {
         }
       })
       .catch((err) => {
-        console.warn('Could not load state from Cloud SQL, using local state', err);
+        console.warn('Could not load state from Supabase, using local state', err);
       });
   }, [currentUser]);
 
-  // Save to localStorage & Cloud SQL on state change
+  // Save to localStorage & Supabase on state change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -212,7 +212,7 @@ export function useFinance() {
             setIsCloudSynced(true);
           })
           .catch((err) => {
-            console.warn('Failed to save state to Cloud SQL', err);
+            console.warn('Failed to save state to Supabase', err);
           });
       }
     } catch (e) {
@@ -584,7 +584,7 @@ export function useFinance() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(freshData));
       if (currentUser) {
         saveStateToSupabase(freshData).catch((err) => {
-          console.warn('Failed to sync reset state to Cloud SQL', err);
+          console.warn('Failed to sync reset state to Supabase', err);
         });
       }
     } catch (e) {
@@ -613,7 +613,7 @@ export function useFinance() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyData));
       if (currentUser) {
         saveStateToSupabase(emptyData).catch((err) => {
-          console.warn('Failed to sync clear state to Cloud SQL', err);
+          console.warn('Failed to sync clear state to Supabase', err);
         });
       }
     } catch (e) {

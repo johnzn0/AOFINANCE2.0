@@ -426,7 +426,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         )}
 
         <p className="text-[10px] text-slate-500 text-center leading-relaxed">
-          O sistema utiliza autenticação própria e banco de dados Cloud SQL PostgreSQL de alta performance.
+          O sistema utiliza autenticação própria e banco de dados Supabase PostgreSQL de alta performance.
         </p>
       </div>
     </div>
