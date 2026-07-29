@@ -1,6 +1,6 @@
 -- =========================================================================================
 -- SCRIPT ÚNICO DE MIGRAÇÃO - AOFINANCE (SUPABASE / POSTGRESQL)
--- (Versão Idempotente - Pode ser executado várias vezes)
+-- (Versão Idempotente e com Triggers Automáticas para Autenticação)
 -- =========================================================================================
 
 -- 1. EXTENSÕES E TIPOS (ENUMS)
@@ -213,3 +213,40 @@ CREATE TABLE IF NOT EXISTS investments (
 );
 DROP TRIGGER IF EXISTS set_timestamp_investments ON investments;
 CREATE TRIGGER set_timestamp_investments BEFORE UPDATE ON investments FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
+
+-- 4. AUTOMAÇÃO DE PERFIS (TRIGGERS DO SUPABASE)
+-- Cria o perfil automaticamente quando um usuário se cadastrar no auth.users do Supabase
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, display_name, role, status, plan)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    CASE WHEN LOWER(NEW.email) = 'johnozzi21@gmail.com' THEN 'admin'::user_role ELSE 'user'::user_role END,
+    CASE WHEN LOWER(NEW.email) = 'johnozzi21@gmail.com' THEN 'approved'::user_status ELSE 'pending'::user_status END,
+    'free'::user_plan
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- 5. RECUPERAÇÃO DE USUÁRIOS EXISTENTES (BACKFILL)
+-- Puxa os usuários que já estavam no auth.users mas não tinham ido pra tabela profiles
+INSERT INTO public.profiles (id, email, display_name, role, status, plan)
+SELECT 
+    id, 
+    email, 
+    COALESCE(raw_user_meta_data->>'full_name', split_part(email, '@', 1)),
+    CASE WHEN LOWER(email) = 'johnozzi21@gmail.com' THEN 'admin'::user_role ELSE 'user'::user_role END,
+    CASE WHEN LOWER(email) = 'johnozzi21@gmail.com' THEN 'approved'::user_status ELSE 'pending'::user_status END,
+    'free'::user_plan
+FROM auth.users
+ON CONFLICT (id) DO NOTHING;
