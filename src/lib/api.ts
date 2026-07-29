@@ -34,6 +34,9 @@ export async function registerWithApi(email: string, pass: string, name?: string
   if (error) {
     if (error.message.includes('already registered')) throw new Error('Este e-mail já está cadastrado.');
     if (error.message.includes('Password should be at least')) throw new Error('A senha deve ter pelo menos 6 caracteres.');
+    if (error.message.includes('rate limit') || error.name === 'AuthRetryableFetchError') {
+      throw new Error('Muitas tentativas (Rate Limit). Por favor, desative "Confirm email" no Supabase (Authentication -> Providers -> Email) para testes, ou tente mais tarde.');
+    }
     throw error;
   }
   
