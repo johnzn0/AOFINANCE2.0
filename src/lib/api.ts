@@ -47,7 +47,7 @@ export async function registerWithApi(email: string, pass: string, name?: string
     const profilePlan = 'free';
 
     // Insert into profiles
-    await supabase.from('profiles').upsert({
+    const { error: profileError } = await supabase.from('profiles').upsert({
       id: data.user.id,
       email: email,
       display_name: name,
@@ -55,6 +55,10 @@ export async function registerWithApi(email: string, pass: string, name?: string
       status: profileStatus,
       plan: profilePlan,
     });
+    
+    if (profileError) {
+      console.error('Error saving profile to database:', profileError);
+    }
 
     return { 
       profile: { 
