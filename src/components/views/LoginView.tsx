@@ -301,9 +301,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
             </div>
 
             {errorMsg && (
-              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-                <span>{errorMsg}</span>
+              <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-300 text-xs flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                <span className="leading-relaxed font-medium">{errorMsg}</span>
               </div>
             )}
 

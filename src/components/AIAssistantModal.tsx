@@ -109,7 +109,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    const welcomeKey = `aofinance_welcomed_${userProfile?.uid || 'guest'}`;
+    const welcomeKey = `aofinance_welcomed_${userProfile?.uid || 'anon'}`;
     const alreadyWelcomed = localStorage.getItem(welcomeKey);
 
     const initialGreeting = `Olá, ${userName}! Seja muito bem-vindo ao AOFINANCE. Eu sou o seu assistente financeiro pessoal. Estou aqui para te ajudar a organizar suas contas, bater suas metas e fazer seu dinheiro render mais. Como posso te orientar hoje?`;

@@ -20,6 +20,7 @@ export function useFinance() {
   const [currentUser, setCurrentUser] = useState<{ uid: string; email: string; displayName?: string } | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isCloudSynced, setIsCloudSynced] = useState(false);
+  const [isCloudLoaded, setIsCloudLoaded] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const [state, setState] = useState<AppState>(() => {
@@ -85,9 +86,15 @@ export function useFinance() {
     async function checkSession() {
       if (window.location.hash.includes('error=')) {
         const params = new URLSearchParams(window.location.hash.substring(1));
+        const errCode = params.get('error');
         const errDesc = params.get('error_description');
-        if (errDesc) {
-          alert('Erro no login via provedor: ' + decodeURIComponent(errDesc).replace(/\+/g, ' '));
+        if (errDesc || errCode) {
+          const cleanDesc = decodeURIComponent(errDesc || errCode || '').replace(/\+/g, ' ');
+          if (cleanDesc.includes('provider is not enabled') || cleanDesc.includes('Unsupported provider') || errCode === 'unsupported_provider') {
+            alert('Erro no login via Google (Provedor não ativado):\n\nO provedor Google precisa ser ativado no seu Supabase:\n1. Acesse https://supabase.com/dashboard\n2. Vá em Authentication > Providers > Google\n3. Ative o "Google Provider" e adicione seu Client ID & Secret.\n4. Em Authentication > URL Configuration, adicione a URL da sua aplicação nas Redirect URLs.');
+          } else {
+            alert('Erro no login via provedor: ' + cleanDesc);
+          }
           window.location.hash = '';
         }
       }
@@ -169,9 +176,17 @@ export function useFinance() {
 
   // Load state from Supabase when user changes
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setIsCloudLoaded(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsCloudLoaded(false);
+
     loadStateFromSupabase()
       .then((cloudState) => {
+        if (!isMounted) return;
         if (cloudState) {
           setState({
             ...initialData,
@@ -181,31 +196,50 @@ export function useFinance() {
               ...(cloudState.settings || {}),
             },
           });
+          setIsCloudSynced(true);
+          setIsCloudLoaded(true);
+        } else {
+          // If no cloud state yet for this user, upload initial state to cloud
+          saveStateToSupabase(state)
+            .then((res) => {
+              if (isMounted) {
+                setIsCloudSynced(res.success);
+                setIsCloudLoaded(true);
+              }
+            })
+            .catch(() => {
+              if (isMounted) setIsCloudLoaded(true);
+            });
         }
-        setIsCloudSynced(true);
       })
       .catch((err) => {
         console.warn('Could not load state from Supabase, using local state', err);
+        if (isMounted) setIsCloudLoaded(true);
       });
-  }, [currentUser]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.uid]);
 
   // Save to localStorage & Supabase on state change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      if (currentUser) {
+      if (currentUser && isCloudLoaded) {
         saveStateToSupabase(state)
-          .then(() => {
-            setIsCloudSynced(true);
+          .then((res) => {
+            setIsCloudSynced(res.success);
           })
           .catch((err) => {
             console.warn('Failed to save state to Supabase', err);
+            setIsCloudSynced(false);
           });
       }
     } catch (e) {
       console.error('Failed to save state to localStorage', e);
     }
-  }, [state, currentUser]);
+  }, [state, currentUser, isCloudLoaded]);
 
   // Process recurring bills and goal objectives on load or date change
   useEffect(() => {
@@ -629,34 +663,73 @@ export function useFinance() {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    try {
-      const supabase = getSupabase();
-      if (supabase) {
-        const isInIframe = window.self !== window.top;
-        const redirectUrl = window.location.origin;
+    const supabase = getSupabase();
+    if (!supabase) {
+      throw new Error('Supabase não está configurado.');
+    }
 
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: redirectUrl,
-            skipBrowserRedirect: isInIframe,
-          },
-        });
+    const isInIframe = window.self !== window.top;
+    const redirectUrl = window.location.origin;
 
-        if (error) throw error;
-
-        if (isInIframe && data?.url) {
-          const popup = window.open(data.url, '_blank', 'width=500,height=600');
-          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-            window.location.href = data.url;
-          }
-        }
-        return;
+    // Se estiver em iframe (preview), abre uma janela antecipadamente para evitar bloqueador de popup
+    let popupWindow: Window | null = null;
+    if (isInIframe) {
+      popupWindow = window.open('about:blank', 'supabase_google_auth', 'width=500,height=650');
+      if (popupWindow) {
+        popupWindow.document.write(`
+          <div style="font-family:sans-serif; text-align:center; padding:40px; color:#333;">
+            <h3>Conectando ao Google...</h3>
+            <p style="font-size:13px; color:#666;">Aguarde o redirecionamento seguro da autenticação Supabase.</p>
+          </div>
+        `);
       }
-      throw new Error('Supabase não está configurado. Por favor, adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no seu .env para ativar a autenticação com Google via Supabase.');
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: isInIframe,
+        },
+      });
+
+      if (error) {
+        if (popupWindow) popupWindow.close();
+        if (
+          error.message?.includes('provider is not enabled') ||
+          error.message?.includes('Unsupported provider') ||
+          error.message?.includes('validation_failed')
+        ) {
+          throw new Error(
+            'O provedor Google não está ativado no seu Supabase. Para ativar: Acesse https://supabase.com/dashboard > Authentication > Providers > Google, ative o botão "Enable Google Provider" e insira seu Client ID & Client Secret do Google OAuth.'
+          );
+        }
+        throw error;
+      }
+
+      if (isInIframe && data?.url) {
+        if (popupWindow && !popupWindow.closed) {
+          popupWindow.location.href = data.url;
+        } else {
+          window.open(data.url, '_blank', 'width=500,height=650');
+        }
+      } else if (!isInIframe && data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err: any) {
+      if (popupWindow && !popupWindow.closed) popupWindow.close();
       console.error('Google Sign in error:', err);
-      throw err;
+      let msg = err.message || 'Erro ao fazer login com o Google.';
+      if (
+        msg.includes('provider is not enabled') ||
+        msg.includes('Unsupported provider') ||
+        msg.includes('validation_failed')
+      ) {
+        msg =
+          'O login com Google não funcionará até que seja ativado no painel do Supabase. Acesse: Dashboard Supabase > Authentication > Providers > Google, ative e cole as chaves do Google Cloud OAuth.';
+      }
+      throw new Error(msg);
     }
   }, []);
 
