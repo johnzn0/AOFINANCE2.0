@@ -64,15 +64,6 @@ export default function App() {
     );
   }
 
-  // Auto-open Setup Onboarding Wizard on first time login
-  React.useEffect(() => {
-    if (finance.currentUser?.uid && finance.userProfile?.status === 'approved' && finance.isCloudSynced) {
-      if (!finance.state.settings.hasCompletedSetup) {
-        setIsOnboardingOpen(true);
-      }
-    }
-  }, [finance.currentUser?.uid, finance.userProfile?.status, finance.isCloudSynced, finance.state.settings.hasCompletedSetup]);
-
   // Loading state
   if (finance.isAuthLoading) {
     return (
