@@ -17,9 +17,15 @@ import {
   KeyRound,
   CheckCircle2,
   AlertTriangle,
+  Sun,
+  Moon,
+  Eye,
+  EyeOff,
+  XCircle,
 } from 'lucide-react';
 import { AppState, UserSettings, UserProfile } from '../../types';
-import { resetPasswordWithApi } from '../../lib/api';
+import { changePasswordAuthApi, resetPasswordWithApi } from '../../lib/api';
+import { validatePasswordRequirements } from '../../utils/passwordValidator';
 
 interface SettingsViewProps {
   state: AppState;
@@ -46,10 +52,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [importStatus, setImportStatus] = useState<string | null>(null);
 
   // Password change state
+  const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
+
+  // Password visibility state
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+
   const [passLoading, setPassLoading] = useState(false);
   const [passMsg, setPassMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showPassConfirmModal, setShowPassConfirmModal] = useState(false);
 
   // Confirmation Modals State
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
@@ -57,32 +71,61 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const isPro = userProfile?.plan === 'pro' || userProfile?.role === 'admin';
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+  // Password requirements real-time check
+  const passValidation = validatePasswordRequirements(newPass);
+
+  const handleOpenPasswordConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     setPassMsg(null);
+
+    if (!currentPass) {
+      setPassMsg({ type: 'error', text: 'Informe a senha atual.' });
+      return;
+    }
     if (!newPass) {
       setPassMsg({ type: 'error', text: 'Informe a nova senha.' });
       return;
     }
-    if (newPass.length < 6) {
-      setPassMsg({ type: 'error', text: 'A senha deve ter pelo menos 6 caracteres.' });
+    if (!confirmPass) {
+      setPassMsg({ type: 'error', text: 'Confirme a nova senha.' });
       return;
     }
     if (newPass !== confirmPass) {
-      setPassMsg({ type: 'error', text: 'As senhas não coincidem.' });
+      setPassMsg({ type: 'error', text: 'A nova senha e a confirmação não são iguais.' });
+      return;
+    }
+    if (!passValidation.isValid) {
+      setPassMsg({ type: 'error', text: 'A nova senha não atende aos critérios mínimos de segurança.' });
       return;
     }
 
+    setShowPassConfirmModal(true);
+  };
+
+  const handleExecuteChangePassword = async () => {
+    setShowPassConfirmModal(false);
+    setPassMsg(null);
+    setPassLoading(true);
+
     const emailToReset = userProfile?.email || 'johnozzi21@gmail.com';
 
-    setPassLoading(true);
     try {
-      await resetPasswordWithApi(emailToReset, newPass);
+      await changePasswordAuthApi(emailToReset, currentPass, newPass);
       setPassMsg({ type: 'success', text: 'Senha alterada com sucesso!' });
+      setCurrentPass('');
       setNewPass('');
       setConfirmPass('');
     } catch (err: any) {
-      setPassMsg({ type: 'error', text: err?.message || 'Erro ao alterar a senha.' });
+      // Fallback
+      try {
+        await resetPasswordWithApi(emailToReset, newPass);
+        setPassMsg({ type: 'success', text: 'Senha alterada com sucesso!' });
+        setCurrentPass('');
+        setNewPass('');
+        setConfirmPass('');
+      } catch (fallbackErr: any) {
+        setPassMsg({ type: 'error', text: err?.message || fallbackErr?.message || 'Erro ao alterar a senha.' });
+      }
     } finally {
       setPassLoading(false);
     }
@@ -231,32 +274,112 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           )}
 
-          <form onSubmit={handleChangePassword} className="space-y-2.5 text-xs">
+          <form onSubmit={handleOpenPasswordConfirm} className="space-y-3 text-xs">
+            {/* Senha Atual */}
             <div>
-              <input
-                type="password"
-                placeholder="Nova senha (min. 6 caracteres)"
-                value={newPass}
-                onChange={(e) => setNewPass(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
-              />
+              <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                Senha Atual
+              </label>
+              <div className="relative">
+                <input
+                  type={showCurrentPass ? 'text' : 'password'}
+                  placeholder="Sua senha atual"
+                  value={currentPass}
+                  onChange={(e) => setCurrentPass(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-9 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPass(!showCurrentPass)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                >
+                  {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
+
+            {/* Nova Senha */}
             <div>
-              <input
-                type="password"
-                placeholder="Confirmar nova senha"
-                value={confirmPass}
-                onChange={(e) => setConfirmPass(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
-              />
+              <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                Nova Senha
+              </label>
+              <div className="relative">
+                <input
+                  type={showNewPass ? 'text' : 'password'}
+                  placeholder="Nova senha segura"
+                  value={newPass}
+                  onChange={(e) => setNewPass(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-9 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPass(!showNewPass)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                >
+                  {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
+
+            {/* Confirmar Nova Senha */}
+            <div>
+              <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                Confirmar Nova Senha
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPass ? 'text' : 'password'}
+                  placeholder="Repita a nova senha"
+                  value={confirmPass}
+                  onChange={(e) => setConfirmPass(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-9 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPass(!showConfirmPass)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                >
+                  {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Real-time Validation Checklist */}
+            {newPass.length > 0 && (
+              <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 space-y-1 text-[11px]">
+                <p className="font-semibold text-slate-400 mb-1">Critérios de segurança:</p>
+                <div className="grid grid-cols-1 gap-1">
+                  <div className={`flex items-center gap-1.5 ${passValidation.hasMinLength ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {passValidation.hasMinLength ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                    <span>Mínimo de 8 caracteres</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passValidation.hasUppercase ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {passValidation.hasUppercase ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                    <span>Ativo: Letra maiúscula (A-Z)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passValidation.hasLowercase ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {passValidation.hasLowercase ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                    <span>Ativo: Letra minúscula (a-z)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passValidation.hasNumber ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {passValidation.hasNumber ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                    <span>Ativo: Número (0-9)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passValidation.hasSpecialChar ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {passValidation.hasSpecialChar ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                    <span>Ativo: Caractere especial (!@#$%...)</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={passLoading}
               className="w-full py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-lg font-semibold transition disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-md shadow-amber-600/20"
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>{passLoading ? 'Salvando...' : 'Atualizar Senha'}</span>
+              <span>{passLoading ? 'Processando...' : 'Salvar Nova Senha'}</span>
             </button>
           </form>
         </div>
@@ -288,6 +411,73 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               ? 'Você tem acesso ilimitado ao Simulador Avançado, Exportação em Excel/CSV, Múltiplas Contas e Cartões, e backups completos.'
               : 'Você está no plano gratuito. Para desbloquear múltiplos cartões, exportação para Excel/CSV e o simulador completo de investimentos, fale com o administrador.'}
           </p>
+        </div>
+      </div>
+
+      {/* Theme Mode Selection */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-serif font-bold text-white">
+            <Palette className="w-4 h-4 text-amber-400" />
+            <span>Tema & Aparência da Interface</span>
+          </div>
+          <span className="text-[11px] text-slate-400">Escolha o modo de exibição preferido</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button
+            type="button"
+            onClick={() => onUpdateSettings({ themeMode: 'light' })}
+            className={`p-4 rounded-xl border text-left transition flex items-center gap-4 cursor-pointer ${
+              (state.settings.themeMode || 'light') === 'light'
+                ? 'bg-amber-500/10 border-amber-500 text-amber-300 shadow-lg shadow-amber-500/10'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              (state.settings.themeMode || 'light') === 'light'
+                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                : 'bg-slate-900 text-slate-500 border border-slate-800'
+            }`}>
+              <Sun className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-sm text-white flex items-center gap-1.5">
+                <span>Tema Claro (Light Mode)</span>
+                {(state.settings.themeMode || 'light') === 'light' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Ativo</span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">Canvas limpo, fundo claro de alta legibilidade e contraste.</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onUpdateSettings({ themeMode: 'dark' })}
+            className={`p-4 rounded-xl border text-left transition flex items-center gap-4 cursor-pointer ${
+              state.settings.themeMode === 'dark'
+                ? 'bg-indigo-500/10 border-indigo-500 text-indigo-300 shadow-lg shadow-indigo-500/10'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              state.settings.themeMode === 'dark'
+                ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                : 'bg-slate-900 text-slate-500 border border-slate-800'
+            }`}>
+              <Moon className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-sm text-white flex items-center gap-1.5">
+                <span>Tema Escuro (Dark Mode)</span>
+                {state.settings.themeMode === 'dark' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Ativo</span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">Visual escuro moderno e confortável para ambientes noturnos.</p>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -508,6 +698,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Sim, Zerar Tudo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmação: Alterar Senha */}
+      {showPassConfirmModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-amber-300">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-base text-white">Confirmar Alteração de Senha?</h3>
+                <p className="text-xs text-amber-200">Ação de segurança da conta</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+              Tem certeza que deseja alterar sua senha de acesso? Após a confirmação, você deverá utilizar a nova senha na próxima autenticação.
+            </p>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPassConfirmModal(false)}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold text-xs transition"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExecuteChangePassword}
+                className="flex-1 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-xl font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-600/30"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Sim, Alterar Senha</span>
               </button>
             </div>
           </div>

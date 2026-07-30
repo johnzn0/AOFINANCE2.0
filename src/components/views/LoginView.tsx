@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, Mail, User, Clock, AlertTriangle, ArrowRight, LogOut, CheckCircle2, Building2 } from 'lucide-react';
 import { UserProfile } from '../../types';
+import { requestForgotPasswordApi } from '../../lib/api';
 
 interface LoginViewProps {
   onLoginWithGoogle?: () => Promise<void>;
@@ -23,7 +24,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [newResetPassword, setNewResetPassword] = useState('');
   const [name, setName] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -39,18 +39,21 @@ export const LoginView: React.FC<LoginViewProps> = ({
     }
     setLoading(true);
     try {
-      if (onResetPassword) {
-        await onResetPassword(email.trim(), newResetPassword.trim() || undefined);
-      }
-      if (newResetPassword.trim()) {
-        setSuccessMsg(`Senha alterada com sucesso para ${email.trim()}! Você já pode entrar com a nova senha.`);
-        setNewResetPassword('');
-      } else {
-        setSuccessMsg(`Instruções ou redefinição registradas para ${email.trim()}! Verifique sua caixa de entrada/spam.`);
-      }
+      const res = await requestForgotPasswordApi(email.trim());
+      setSuccessMsg(res.message || 'Se o e-mail estiver cadastrado, você receberá as instruções com um link para redefinir sua senha.');
     } catch (err: any) {
-      console.error('Password reset error:', err);
-      setErrorMsg(err.message || 'Erro ao redefinir a senha.');
+      console.error('Password reset request error:', err);
+      // Fallback
+      if (onResetPassword) {
+        try {
+          await onResetPassword(email.trim());
+          setSuccessMsg('Se o e-mail estiver cadastrado, você receberá as instruções para redefinir sua senha.');
+        } catch (fallbackErr: any) {
+          setErrorMsg(fallbackErr?.message || 'Erro ao solicitar recuperação de senha.');
+        }
+      } else {
+        setErrorMsg(err.message || 'Erro ao solicitar recuperação de senha.');
+      }
     } finally {
       setLoading(false);
     }
@@ -224,31 +227,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-300 mb-1 flex items-center justify-between">
-                  <span>Nova Senha <span className="text-slate-500 font-normal">(Opcional)</span></span>
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
-                  <input
-                    type="password"
-                    placeholder="Digite para redefinir a senha na hora"
-                    value={newResetPassword}
-                    onChange={(e) => setNewResetPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Se preenchido, sua senha será atualizada imediatamente no sistema sem depender de e-mail.
-                </p>
-              </div>
-
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 disabled:opacity-50"
               >
-                {loading ? 'Processando...' : newResetPassword.trim() ? 'Atualizar Senha Agora' : 'Enviar Instruções de Recuperação'}
+                {loading ? 'Enviando...' : 'Enviar Link de Recuperação'}
               </button>
             </form>
 

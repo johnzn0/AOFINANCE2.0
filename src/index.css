@@ -1,1 +1,138 @@
 @import "tailwindcss";
+
+/* ==========================================
+   LIGHT THEME OVERRIDES (.light-theme)
+   High-Contrast, Clean & Elegant Design
+   ========================================== */
+.light-theme {
+  color-scheme: light;
+  background-color: #f1f5f9 !important; /* Richer Slate-100 background canvas */
+  color: #020617 !important; /* Deep Slate-950 text */
+}
+
+/* Page canvas backgrounds */
+.light-theme .bg-slate-950,
+.light-theme .bg-slate-950\/80,
+.light-theme .bg-slate-950\/60,
+.light-theme .bg-slate-950\/40 {
+  background-color: #f1f5f9 !important;
+}
+
+/* Card and Main Container backgrounds */
+.light-theme .bg-slate-900,
+.light-theme .bg-slate-900\/90,
+.light-theme .bg-slate-900\/80,
+.light-theme .bg-slate-900\/60,
+.light-theme .bg-slate-900\/40,
+.light-theme .bg-slate-900\/30 {
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05), 0 0 0 1px rgb(15 23 42 / 0.08) !important;
+}
+
+/* Inner elements / Secondary panels / Table rows */
+.light-theme .bg-slate-800,
+.light-theme .bg-slate-800\/90,
+.light-theme .bg-slate-800\/80,
+.light-theme .bg-slate-800\/60,
+.light-theme .bg-slate-800\/40,
+.light-theme .bg-slate-800\/30 {
+  background-color: #f8fafc !important;
+}
+
+.light-theme .bg-slate-800\/50,
+.light-theme .bg-slate-800\/20 {
+  background-color: #f1f5f9 !important;
+}
+
+/* Crisp, Defined Borders */
+.light-theme .border-slate-800,
+.light-theme .border-slate-800\/80,
+.light-theme .border-slate-800\/60,
+.light-theme .border-slate-800\/40,
+.light-theme .border-slate-800\/20,
+.light-theme .border-slate-700,
+.light-theme .border-slate-700\/60,
+.light-theme .border-slate-700\/40 {
+  border-color: #cbd5e1 !important; /* Crisp Slate-300 border */
+}
+
+/* Primary Headings and White Text -> Deep Dark Slate */
+.light-theme .text-white,
+.light-theme .text-slate-100,
+.light-theme .text-slate-200 {
+  color: #020617 !important; /* Highest contrast Slate-950 */
+}
+
+/* Subtitles, Labels and Secondary Text */
+.light-theme .text-slate-300,
+.light-theme .text-slate-400 {
+  color: #1e293b !important; /* High contrast Slate-800 */
+}
+
+/* Muted / Caption Text */
+.light-theme .text-slate-500 {
+  color: #475569 !important; /* Clear Slate-600 */
+}
+
+/* Form controls (Inputs, Selects, Textareas) */
+.light-theme input,
+.light-theme select,
+.light-theme textarea {
+  background-color: #ffffff !important;
+  border-color: #94a3b8 !important; /* Stronger Slate-400 input border */
+  color: #020617 !important;
+}
+
+.light-theme input::placeholder,
+.light-theme textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Buttons and Hover states */
+.light-theme .hover\:bg-slate-800:hover,
+.light-theme .hover\:bg-slate-800\/80:hover,
+.light-theme .hover\:bg-slate-800\/60:hover {
+  background-color: #e2e8f0 !important;
+}
+
+.light-theme .hover\:text-white:hover,
+.light-theme .hover\:text-slate-200:hover {
+  color: #020617 !important;
+}
+
+/* Accent Color Contrast Enhancements in Light Mode */
+.light-theme .text-emerald-400 {
+  color: #059669 !important; /* Emerald-600 */
+}
+.light-theme .text-indigo-400 {
+  color: #4f46e5 !important; /* Indigo-600 */
+}
+.light-theme .text-blue-400 {
+  color: #2563eb !important; /* Blue-600 */
+}
+.light-theme .text-amber-400 {
+  color: #d97706 !important; /* Amber-600 */
+}
+.light-theme .text-rose-400 {
+  color: #e11d48 !important; /* Rose-600 */
+}
+.light-theme .text-purple-400 {
+  color: #9333ea !important; /* Purple-600 */
+}
+
+/* Sidebar Specific for Light Theme */
+.light-theme aside {
+  background-color: #ffffff !important;
+  border-right-color: #cbd5e1 !important;
+  box-shadow: 2px 0 8px 0 rgb(0 0 0 / 0.04) !important;
+}
+
+.light-theme aside .text-white {
+  color: #020617 !important;
+}
+
+/* Header Specific for Light Theme */
+.light-theme header {
+  border-bottom-color: #cbd5e1 !important;
+}
+

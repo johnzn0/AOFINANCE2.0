@@ -213,3 +213,16 @@ CREATE TABLE IF NOT EXISTS investments (
 );
 DROP TRIGGER IF EXISTS set_timestamp_investments ON investments;
 CREATE TRIGGER set_timestamp_investments BEFORE UPDATE ON investments FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
+
+-- 3.11. Tokens de Recuperação de Senha
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    used_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_reset_token ON password_reset_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id);

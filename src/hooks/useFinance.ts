@@ -788,7 +788,22 @@ export function useFinance() {
       const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: window.location.origin,
       });
-      if (error) throw error;
+      if (error) {
+        if (
+          error.status === 500 ||
+          error.message?.includes('500') ||
+          error.message?.includes('Error sending') ||
+          error.name === 'AuthRetryableFetchError'
+        ) {
+          throw new Error(
+            'Erro 500 no Supabase. O serviço gratuito de e-mail do Supabase está desativado ou com limite excedido. Para resolver no Supabase: Vá em Authentication > Settings > SMTP e configure seu servidor de e-mail.'
+          );
+        }
+        if (error.message?.includes('rate limit') || error.status === 429) {
+          throw new Error('Limite de e-mails atingido. Aguarde alguns minutos ou configure um SMTP no painel do Supabase.');
+        }
+        throw error;
+      }
       return;
     }
 

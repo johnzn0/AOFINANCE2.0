@@ -151,21 +151,106 @@ export async function loginWithApi(email: string, pass: string) {
   return { profile: null };
 }
 
-export async function resetPasswordWithApi(email: string, newPassword?: string) {
-  const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase not configured');
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
-  if (error) {
-    if (error.status === 500) {
-      throw new Error('Erro 500 no Supabase. Isso geralmente ocorre devido a problemas no servidor de e-mail (SMTP) do Supabase. Configure um SMTP customizado no painel do Supabase (Auth > Settings > SMTP).');
+export async function requestForgotPasswordApi(email: string) {
+  try {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao solicitar recuperação de senha.');
+    return data;
+  } catch (err: any) {
+    // Fallback direct to Supabase if API is unreachable
+    const supabase = getSupabase();
+    if (supabase) {
+      await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
     }
-    if (error.message.includes('rate limit')) {
-      throw new Error('Limite de e-mails atingido. Aguarde ou configure um SMTP no Supabase.');
+    return {
+      success: true,
+      message: 'Se o e-mail estiver cadastrado, você receberá as instruções para redefinir sua senha.',
+    };
+  }
+}
+
+export async function verifyResetTokenApi(token: string) {
+  try {
+    const res = await fetch(`/api/auth/verify-reset-token?token=${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if (!res.ok || !data.valid) {
+      return { valid: false, message: data.message || 'Link de recuperação inválido ou expirado.' };
+    }
+    return { valid: true, email: data.email };
+  } catch (err: any) {
+    return { valid: false, message: 'Não foi possível verificar a validade do link.' };
+  }
+}
+
+export async function resetPasswordWithTokenApi(token: string, newPassword: string) {
+  const res = await fetch('/api/auth/reset-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Erro ao redefinir a senha.');
+  }
+  return data;
+}
+
+export async function changePasswordAuthApi(email: string, currentPassword: string, newPassword: string) {
+  const res = await fetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, currentPassword, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Erro ao alterar a senha.');
+  }
+  return data;
+}
+
+export async function resetPasswordWithApi(email: string, newPassword?: string) {
+
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase não configurado');
+
+  if (newPassword) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateErr) throw updateErr;
+      return { message: 'Senha atualizada com sucesso!' };
+    }
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}`,
+  });
+
+  if (error) {
+    if (
+      error.status === 500 ||
+      error.message?.includes('500') ||
+      error.message?.includes('Error sending') ||
+      error.name === 'AuthRetryableFetchError'
+    ) {
+      throw new Error(
+        'Erro 500 no Supabase. O servidor de e-mail do Supabase está desativado ou com limite excedido. Para resolver no Supabase: Vá em Authentication > Settings > SMTP e configure um servidor SMTP próprio.'
+      );
+    }
+    if (error.message?.includes('rate limit') || error.status === 429) {
+      throw new Error('Limite de e-mails atingido. Aguarde alguns minutos ou configure um SMTP no painel do Supabase.');
     }
     throw error;
   }
-  return { message: 'Email de recuperação enviado.' };
-};
+  return { message: 'E-mail de recuperação enviado com sucesso!' };
+}
 
 export async function getCurrentUserProfile() {
   const supabase = getSupabase();

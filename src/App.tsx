@@ -24,16 +24,45 @@ import { ReportsView } from './components/views/ReportsView';
 import { CalendarView } from './components/views/CalendarView';
 import { SimulatorView } from './components/views/SimulatorView';
 import { SettingsView } from './components/views/SettingsView';
+import { ResetPasswordView } from './components/views/ResetPasswordView';
 
 export default function App() {
   const finance = useFinance();
   const [currentPage, setCurrentPage] = useState<TabPage>('overview');
+
+  // Detect reset token in URL
+  const [urlResetToken, setUrlResetToken] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('token');
+    }
+    return null;
+  });
 
   // Modal active IDs
   const [contribGoalId, setContribGoalId] = useState<string | null>(null);
   const [withdrawInvId, setWithdrawInvId] = useState<string | null>(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+
+  // Clear reset token URL param
+  const handleClearResetToken = () => {
+    if (typeof window !== 'undefined') {
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+    setUrlResetToken(null);
+  };
+
+  // If URL has a reset token, render ResetPasswordView
+  if (urlResetToken) {
+    return (
+      <ResetPasswordView
+        token={urlResetToken}
+        onGoToLogin={handleClearResetToken}
+      />
+    );
+  }
 
   // Auto-open Setup Onboarding Wizard on first time login
   React.useEffect(() => {
@@ -122,8 +151,10 @@ export default function App() {
     
   };
 
+  const themeMode = finance.state.settings.themeMode || 'light';
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
+    <div className={`${themeMode === 'light' ? 'light-theme bg-slate-50 text-slate-900' : 'dark-theme bg-slate-950 text-slate-100'} min-h-screen flex flex-col font-sans selection:bg-blue-500 selection:text-white transition-colors duration-200`}>
       <PWAInstallBanner />
       <div className="flex flex-1">
         {/* Desktop Sidebar */}
@@ -149,6 +180,7 @@ export default function App() {
           onLogout={finance.logout}
           onOpenAssistant={() => setIsAssistantOpen(true)}
           isCloudSynced={finance.isCloudSynced}
+          onToggleTheme={() => finance.updateSettings({ themeMode: themeMode === 'light' ? 'dark' : 'light' })}
         />
 
         <AnimatePresence mode="wait">

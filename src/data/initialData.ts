@@ -33,6 +33,7 @@ export const initialData: AppState = {
     categories: [...DEFAULT_CATEGORIES],
     investmentTypes: [...DEFAULT_INV_TYPES],
     theme: DEFAULT_THEME_CONFIG,
+    themeMode: 'light',
   },
 };
 

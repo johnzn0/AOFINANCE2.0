@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield, Sun, Moon } from 'lucide-react';
 import { TabPage, AppState, UserProfile } from '../types';
 import { monthLabel } from '../utils/formatters';
 
@@ -13,6 +13,7 @@ interface HeaderProps {
   onLogout?: () => void;
   onOpenAssistant?: () => void;
   isCloudSynced?: boolean;
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onOpenAssistant,
   isCloudSynced = true,
+  onToggleTheme,
 }) => {
   const titles: Record<TabPage, { title: string; sub: string }> = {
     overview: { title: 'Visão Geral', sub: 'Seu resumo financeiro e alertas inteligentes' },
@@ -41,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const current = titles[currentPage] || { title: 'AOFINANCE', sub: 'Gestão Financeira' };
+  const currentTheme = state.settings.themeMode || 'light';
 
   return (
     <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/80 mb-6">
@@ -64,11 +67,13 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Firebase cloud status pill */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium">
-          <Database className="w-3.5 h-3.5" />
-          <span>Nuvem Ativa</span>
-        </div>
+        {/* Supabase cloud status pill - Admin Only */}
+        {userProfile?.role === 'admin' && (
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium">
+            <Database className="w-3.5 h-3.5" />
+            <span>Nuvem Ativa</span>
+          </div>
+        )}
 
         <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs font-mono">
           <button
