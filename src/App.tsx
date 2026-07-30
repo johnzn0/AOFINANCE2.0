@@ -37,14 +37,12 @@ export default function App() {
 
   // Auto-open Setup Onboarding Wizard on first time login
   React.useEffect(() => {
-    if (finance.currentUser?.uid && finance.userProfile?.status === 'approved') {
-      const onboardedKey = `aofinance_onboarded_${finance.currentUser.uid}`;
-      const alreadyOnboarded = localStorage.getItem(onboardedKey);
-      if (!alreadyOnboarded) {
+    if (finance.currentUser?.uid && finance.userProfile?.status === 'approved' && finance.isCloudSynced) {
+      if (!finance.state.settings.hasCompletedSetup) {
         setIsOnboardingOpen(true);
       }
     }
-  }, [finance.currentUser?.uid, finance.userProfile?.status]);
+  }, [finance.currentUser?.uid, finance.userProfile?.status, finance.isCloudSynced, finance.state.settings.hasCompletedSetup]);
 
   // Loading state
   if (finance.isAuthLoading) {
@@ -89,6 +87,7 @@ export default function App() {
     finance.updateSettings({
       profileName: data.name,
       categories: data.categories.length ? data.categories : finance.state.settings.categories,
+      hasCompletedSetup: true,
     });
 
     if (data.banks.length > 0) {
@@ -120,9 +119,7 @@ export default function App() {
       });
     }
 
-    if (finance.currentUser?.uid) {
-      localStorage.setItem(`aofinance_onboarded_${finance.currentUser.uid}`, 'true');
-    }
+    
   };
 
   return (

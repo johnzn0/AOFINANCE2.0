@@ -55,6 +55,32 @@ export function useFinance() {
   // Track Auth state & Profile
   useEffect(() => {
     let isMounted = true;
+    
+    const syncUser = async (user: any) => {
+      if (!isMounted || !user) return;
+      try {
+        const prof = await getCurrentUserProfile();
+        if (prof) {
+          setUserProfile({
+            uid: prof.uid || user.id,
+            email: prof.email || user.email || '',
+            displayName: prof.displayName || user.user_metadata?.full_name || (user.email ? user.email.split('@')[0] : ''),
+            role: prof.role || 'user',
+            status: prof.status || 'pending',
+            plan: prof.plan || 'free',
+            createdAt: user.created_at || new Date().toISOString(),
+            photoURL: user.user_metadata?.avatar_url,
+          } as any);
+          setCurrentUser({
+            uid: prof.uid || user.id,
+            email: prof.email || user.email || '',
+            displayName: prof.displayName || user.user_metadata?.full_name || (user.email ? user.email.split('@')[0] : ''),
+          });
+        }
+      } catch (e) {
+        console.error('Failed to sync user', e);
+      }
+    };
 
     async function checkSession() {
       // If running inside a popup opened by Google OAuth:
@@ -90,36 +116,10 @@ export function useFinance() {
 
       const supabase = getSupabase();
       if (supabase) {
-        const syncUser = async (user: any) => {
-  if (!isMounted || !user) return;
-  const email = user.email || '';
-  const name = user.user_metadata?.full_name || email.split('@')[0];
-  try {
-    const prof = {
-      uid: user.id,
-      email: email,
-      displayName: name,
-      role: 'user',
-      status: 'approved',
-      plan: 'free',
-      createdAt: user.created_at,
-    };
-    setUserProfile(prof as any);
-    setCurrentUser({
-      uid: prof.uid,
-      email: prof.email,
-      displayName: prof.displayName,
-    });
-  } catch (e) {
-    console.error('Failed to sync user', e);
-  }
-};
-
         const { data: subData } = supabase.auth.onAuthStateChange(async (event, session) => {
           if (!isMounted) return;
           if (session?.user) {
             await syncUser(session.user);
-
             // If this is a popup, notify parent and close
             if (window.opener && window.opener !== window) {
               try {
@@ -150,22 +150,7 @@ export function useFinance() {
         if (supabase) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
-            const email = session.user.email || '';
-            const name = session.user.user_metadata?.full_name || email.split('@')[0];
-            try {
-              const res = await fetch('/api/auth/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uid: session.user.id, email, displayName: name }),
-              });
-              const prof = await res.json();
-              if (prof && !prof.error) {
-                setUserProfile(prof);
-                setCurrentUser({ uid: prof.uid, email: prof.email, displayName: prof.displayName });
-              }
-            } catch (e) {
-              console.error(e);
-            }
+            await syncUser(session.user);
           }
         }
       }
@@ -194,8 +179,8 @@ export function useFinance() {
               ...(cloudState.settings || {}),
             },
           });
-          setIsCloudSynced(true);
         }
+        setIsCloudSynced(true);
       })
       .catch((err) => {
         console.warn('Could not load state from Supabase, using local state', err);

@@ -121,6 +121,7 @@ export interface UserSettings {
   categories: string[];
   investmentTypes: string[];
   theme: ThemeConfig;
+  hasCompletedSetup?: boolean;
 }
 
 export interface AppState {
