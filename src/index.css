@@ -136,3 +136,12 @@
   border-bottom-color: #cbd5e1 !important;
 }
 
+/* Mobile Safe Area Inset utilities */
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+

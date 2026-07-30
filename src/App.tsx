@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFinance } from './hooks/useFinance';
 import { TabPage } from './types';
@@ -10,6 +10,7 @@ import { GoalContribModal } from './components/GoalContribModal';
 import { WithdrawModal } from './components/WithdrawModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { AIAssistantModal } from './components/AIAssistantModal';
+import { saveStateToOfflineCache, saveProfileToOfflineCache } from './mobile/offlineStore';
 
 // Views
 import { LoginView } from './components/views/LoginView';
@@ -63,6 +64,19 @@ export default function App() {
       />
     );
   }
+
+  // Auto offline cache for mobile performance
+  useEffect(() => {
+    if (finance.state) {
+      saveStateToOfflineCache(finance.state);
+    }
+  }, [finance.state]);
+
+  useEffect(() => {
+    if (finance.userProfile) {
+      saveProfileToOfflineCache(finance.userProfile);
+    }
+  }, [finance.userProfile]);
 
   // Loading state
   if (finance.isAuthLoading) {
@@ -270,6 +284,7 @@ export default function App() {
         currentPage={currentPage}
         onSelectPage={setCurrentPage}
         userProfile={finance.userProfile}
+        onOpenAssistant={() => setIsAssistantOpen(true)}
       />
 
       {/* Modals */}

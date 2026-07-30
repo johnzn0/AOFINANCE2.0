@@ -22,6 +22,9 @@ import {
   Eye,
   EyeOff,
   XCircle,
+  Smartphone,
+  Share,
+  PlusSquare,
 } from 'lucide-react';
 import { AppState, UserSettings, UserProfile } from '../../types';
 import { changePasswordAuthApi, resetPasswordWithApi } from '../../lib/api';
@@ -657,6 +660,56 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </button>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Aplicativo Mobile & Atalho de Acesso Rápido (Android & iOS) */}
+      <div className="bg-gradient-to-br from-slate-900 via-blue-950/30 to-slate-900 border border-blue-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-amber-500 flex items-center justify-center text-white font-bold shrink-0 shadow-md">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-serif font-bold text-white flex items-center gap-2">
+                <span>Aplicativo Mobile & Atalho no Celular</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] border border-emerald-500/30">
+                  Android & iOS
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Instale como aplicativo nativo (PWA) ou crie um atalho direto na tela inicial do seu smartphone.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
+          {/* Android Guide */}
+          <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div className="flex items-center gap-2 font-bold text-blue-400">
+              <Smartphone className="w-4 h-4" />
+              <span>Android (Google Chrome / Brave)</span>
+            </div>
+            <ol className="list-decimal list-inside space-y-1.5 text-slate-300 text-[11px] leading-relaxed">
+              <li>Toque no menu do navegador <strong>(três pontos ⋮)</strong> no canto superior.</li>
+              <li>Selecione <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela de início"</strong>.</li>
+              <li>Confirme para ter o ícone do AO FINANCE na sua gaveta de apps.</li>
+            </ol>
+          </div>
+
+          {/* iOS Guide */}
+          <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div className="flex items-center gap-2 font-bold text-amber-400">
+              <Share className="w-4 h-4" />
+              <span>iPhone / iPad (Safari)</span>
+            </div>
+            <ol className="list-decimal list-inside space-y-1.5 text-slate-300 text-[11px] leading-relaxed">
+              <li>Toque no ícone de <strong>Compartilhar</strong> <Share className="w-3 h-3 inline text-amber-400" /> no menu do Safari.</li>
+              <li>Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong> <PlusSquare className="w-3 h-3 inline text-amber-400" />.</li>
+              <li>Toque em <strong>"Adicionar"</strong> no canto superior direito.</li>
+            </ol>
+          </div>
         </div>
       </div>
 
