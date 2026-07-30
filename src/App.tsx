@@ -45,6 +45,7 @@ export default function App() {
   const [withdrawInvId, setWithdrawInvId] = useState<string | null>(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
   // Clear reset token URL param
   const handleClearResetToken = () => {
@@ -160,7 +161,10 @@ export default function App() {
 
   return (
     <div className={`${themeMode === 'light' ? 'light-theme bg-slate-50 text-slate-900' : 'dark-theme bg-slate-950 text-slate-100'} min-h-screen flex flex-col font-sans selection:bg-blue-500 selection:text-white transition-colors duration-200`}>
-      <PWAInstallBanner />
+      <PWAInstallBanner
+        forceShowModal={isInstallModalOpen}
+        onCloseModal={() => setIsInstallModalOpen(false)}
+      />
       <div className="flex flex-1">
         {/* Desktop Sidebar */}
       <Sidebar
@@ -171,6 +175,7 @@ export default function App() {
         state={finance.state}
         userProfile={finance.userProfile}
         onOpenAssistant={() => setIsAssistantOpen(true)}
+        onOpenInstallModal={() => setIsInstallModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -186,6 +191,7 @@ export default function App() {
           onOpenAssistant={() => setIsAssistantOpen(true)}
           isCloudSynced={finance.isCloudSynced}
           onToggleTheme={() => finance.updateSettings({ themeMode: themeMode === 'light' ? 'dark' : 'light' })}
+          onOpenInstallModal={() => setIsInstallModalOpen(true)}
         />
 
         <AnimatePresence mode="wait">

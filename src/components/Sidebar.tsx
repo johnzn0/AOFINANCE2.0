@@ -28,6 +28,7 @@ interface SidebarProps {
   state: AppState;
   userProfile?: UserProfile | null;
   onOpenAssistant?: () => void;
+  onOpenInstallModal?: () => void;
 }
 
 export const NAV_ITEMS: { id: TabPage; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -51,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   state,
   userProfile,
   onOpenAssistant,
+  onOpenInstallModal,
 }) => {
   const profileName = userProfile?.displayName || state.settings.profileName || 'Configurar Perfil';
   const initial = profileName.trim().charAt(0).toUpperCase() || '?';
@@ -139,6 +141,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
       </div>
+
+      {onOpenInstallModal && (
+        <button
+          onClick={onOpenInstallModal}
+          className="mt-3 flex items-center justify-between p-2.5 bg-gradient-to-r from-blue-600/20 to-amber-500/20 border border-blue-500/30 hover:border-blue-500/60 rounded-xl transition text-left group active:scale-95"
+        >
+          <div className="flex items-center gap-2.5">
+            <Download className="w-4 h-4 text-amber-400 shrink-0" />
+            <div>
+              <div className="text-xs font-bold text-white group-hover:text-amber-300 transition">
+                Instalar Aplicativo
+              </div>
+              <div className="text-[10px] text-slate-400">Instalação direta no celular</div>
+            </div>
+          </div>
+        </button>
+      )}
 
       {/* Profile chip */}
       <button

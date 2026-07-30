@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield, Sun, Moon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield, Sun, Moon, Smartphone } from 'lucide-react';
 import { TabPage, AppState, UserProfile } from '../types';
 import { monthLabel } from '../utils/formatters';
 
@@ -14,6 +14,7 @@ interface HeaderProps {
   onOpenAssistant?: () => void;
   isCloudSynced?: boolean;
   onToggleTheme?: () => void;
+  onOpenInstallModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -27,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAssistant,
   isCloudSynced = true,
   onToggleTheme,
+  onOpenInstallModal,
 }) => {
   const titles: Record<TabPage, { title: string; sub: string }> = {
     overview: { title: 'Visão Geral', sub: 'Seu resumo financeiro e alertas inteligentes' },
@@ -73,6 +75,17 @@ export const Header: React.FC<HeaderProps> = ({
             <Database className="w-3.5 h-3.5" />
             <span>Nuvem Ativa</span>
           </div>
+        )}
+
+        {onOpenInstallModal && (
+          <button
+            onClick={onOpenInstallModal}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-blue-600/20 to-amber-500/20 border border-blue-500/30 text-blue-300 hover:text-white rounded-lg text-xs font-semibold hover:border-blue-500/50 transition active:scale-95"
+            title="Instalar Aplicativo no Celular"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Instalar App</span>
+          </button>
         )}
 
         <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs font-mono">
