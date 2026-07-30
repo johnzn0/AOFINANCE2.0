@@ -65,8 +65,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 p-5 shrink-0 min-h-screen text-slate-100 sticky top-0 h-screen">
       {/* Brand logo */}
       <div className="flex items-center gap-3 mb-6 cursor-pointer" onClick={() => onSelectPage('overview')}>
-        <div className="w-10 h-10 rounded-full border-2 border-blue-500 bg-slate-950 flex items-center justify-center text-blue-400 font-serif font-bold text-lg shadow-md shadow-blue-500/10">
-          AO
+        <div className="w-10 h-10 rounded-full border-2 border-blue-500 bg-slate-950 flex items-center justify-center text-blue-400 font-serif font-bold text-lg shadow-md shadow-blue-500/10 overflow-hidden">
+          <img src="/favicon.png" alt="AO" className="w-full h-full object-cover" />
         </div>
         <div>
           <h1 className="font-serif font-semibold text-xl tracking-tight leading-none text-white">
