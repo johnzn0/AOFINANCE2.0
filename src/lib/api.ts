@@ -34,7 +34,7 @@ export async function registerWithApi(email: string, pass: string, name?: string
   if (error) {
     if (error.message.includes('already registered')) throw new Error('Este e-mail já está cadastrado.');
     if (error.message.includes('Password should be at least')) throw new Error('A senha deve ter pelo menos 6 caracteres.');
-    if (error.message.includes('rate limit')) { throw new Error('Limite de envios atingido. Aguarde ou ajuste as configurações de SMTP no Supabase.'); } if (error.name === 'AuthRetryableFetchError') { throw new Error('Falha de conexão com o servidor. Verifique sua internet ou desative ad-blockers.'); }
+    if (error.message.includes('rate limit')) { throw new Error('Limite de e-mails atingido (Rate Limit do Supabase). Aguarde ou ajuste as configurações de SMTP no Supabase (Auth > Settings > SMTP).'); } if (error.status === 500 || error.name === 'AuthRetryableFetchError') { throw new Error('Erro no servidor do Supabase (500). Isso ocorre devido ao limite do servidor de e-mail gratuito do Supabase. Para corrigir: Acesse seu painel do Supabase > Auth > Providers > Email e DESATIVE "Confirm email" OU configure um servidor SMTP customizado.'); }
     throw error;
   }
   
