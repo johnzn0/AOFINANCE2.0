@@ -83,6 +83,14 @@ export function useFinance() {
     };
 
     async function checkSession() {
+      if (window.location.hash.includes('error=')) {
+        const params = new URLSearchParams(window.location.hash.substring(1));
+        const errDesc = params.get('error_description');
+        if (errDesc) {
+          alert('Erro no login via provedor: ' + decodeURIComponent(errDesc).replace(/\+/g, ' '));
+          window.location.hash = '';
+        }
+      }
       // If running inside a popup opened by Google OAuth:
       if (window.opener && window.opener !== window && (window.location.hash.includes('access_token') || window.location.search.includes('code'))) {
         const supabase = getSupabase();
@@ -146,13 +154,7 @@ export function useFinance() {
 
     const handleMessage = async (event: MessageEvent) => {
       if (event.data?.type === 'SUPABASE_AUTH_SUCCESS' && isMounted) {
-        const supabase = getSupabase();
-        if (supabase) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            await syncUser(session.user);
-          }
-        }
+         window.location.reload();
       }
     };
 
