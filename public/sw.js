@@ -1,16 +1,16 @@
 // Service Worker for AO FINANCE PWA Offline Capabilities & Native WebAPK Execution
-const CACHE_NAME = 'aofinance-pwa-v2';
+const CACHE_NAME = 'aofinance-pwa-v3';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
+  '/manifest.webmanifest',
   '/favicon.svg',
   '/favicon.png',
-  '/assets/icon-192.png',
-  '/assets/icon-512.png',
-  '/assets/icon-maskable-192.png',
-  '/assets/icon-maskable-512.png',
-  '/assets/apple-touch-icon.png'
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/icon-maskable-192.png',
+  '/icons/icon-maskable-512.png',
+  '/icons/apple-touch-icon.png'
 ];
 
 // Install Event - Pre-cache shell assets & force immediate activation
