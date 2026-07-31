@@ -1,10 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Background -->
-  <rect width="512" height="512" fill="#020617" />
-
-  <!-- Outer Blue Ring -->
-  <circle cx="256" cy="256" r="216" fill="#020617" stroke="#3b82f6" stroke-width="24" />
-
-  <!-- AO Serif Text -->
-  <text x="256" y="322" font-family="Georgia, 'Times New Roman', serif" font-size="210" font-weight="bold" fill="#3b82f6" text-anchor="middle" letter-spacing="2">AO</text>
+  <circle cx="256" cy="256" r="216" fill="#020617" stroke="#3b82f6" stroke-width="32" />
+  <path d="M 160 320 L 220 220 L 280 280 L 350 160" stroke="#3b82f6" stroke-width="36" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 280 160 L 350 160 L 350 230" stroke="#3b82f6" stroke-width="36" fill="none" stroke-linecap="round" stroke-linejoin="round" />
 </svg>

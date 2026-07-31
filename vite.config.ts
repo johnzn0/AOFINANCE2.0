@@ -16,7 +16,6 @@ export default defineConfig(() => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,json,webmanifest}'],
           cleanupOutdatedCaches: true
         },
-        filename: 'manifest.json',
         manifest: {
           short_name: "AO FINANCE",
           name: "AO FINANCE - Gestão Financeira Inteligente",
