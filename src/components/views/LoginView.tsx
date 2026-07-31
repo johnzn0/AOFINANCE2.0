@@ -175,7 +175,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
       <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-2xl backdrop-blur-md relative z-10">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-amber-500 text-white font-serif font-black text-xl shadow-lg mb-2">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border-2 border-blue-500 bg-slate-950 text-blue-400 font-serif font-bold text-2xl shadow-lg shadow-blue-500/20 mb-2">
             AO
           </div>
           <h1 className="text-2xl font-serif font-bold text-white tracking-tight">

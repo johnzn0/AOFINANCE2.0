@@ -83,7 +83,7 @@ export default function App() {
   if (finance.isAuthLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-        <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/40 text-blue-400 font-serif font-bold text-xl flex items-center justify-center animate-pulse mb-3">
+        <div className="w-14 h-14 rounded-full border-2 border-blue-500 bg-slate-950 text-blue-400 font-serif font-bold text-2xl flex items-center justify-center animate-pulse shadow-lg shadow-blue-500/20 mb-3">
           AO
         </div>
         <p className="text-xs text-slate-400 font-medium">Iniciando AO FINANCE...</p>
