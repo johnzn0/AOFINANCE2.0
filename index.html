@@ -20,20 +20,6 @@
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-
-    <!-- Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' }).then((reg) => {
-            console.log('SW Registered successfully with scope:', reg.scope);
-          }).catch((err) => {
-            console.warn('SW Registration failed:', err);
-          });
-        });
-      }
-    </script>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-blue-500 selection:text-white">
     <div id="root"></div>

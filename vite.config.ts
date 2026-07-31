@@ -1,11 +1,78 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(), 
+      tailwindcss(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        injectRegister: 'auto',
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+          cleanupOutdatedCaches: true
+        },
+        manifest: {
+          short_name: "AO FINANCE",
+          name: "AO FINANCE - Gestão Financeira Inteligente",
+          description: "Sistema completo de Gestão Financeira Pessoal com Relatórios, Investimentos e Controle de Contas",
+          start_url: "/",
+          scope: "/",
+          display: "standalone",
+          display_override: ["standalone", "minimal-ui", "window-controls-overlay"],
+          orientation: "portrait-primary",
+          background_color: "#020617",
+          theme_color: "#020617",
+          categories: ["finance", "productivity"],
+          prefer_related_applications: false,
+          icons: [
+            {
+              src: "/icons/icon-192.png",
+              type: "image/png",
+              sizes: "192x192",
+              purpose: "any"
+            },
+            {
+              src: "/icons/icon-512.png",
+              type: "image/png",
+              sizes: "512x512",
+              purpose: "any"
+            },
+            {
+              src: "/icons/icon-maskable-192.png",
+              type: "image/png",
+              sizes: "192x192",
+              purpose: "maskable"
+            },
+            {
+              src: "/icons/icon-maskable-512.png",
+              type: "image/png",
+              sizes: "512x512",
+              purpose: "maskable"
+            },
+            {
+              src: "/icons/apple-touch-icon.png",
+              type: "image/png",
+              sizes: "180x180",
+              purpose: "any"
+            }
+          ],
+          shortcuts: [
+            {
+              name: "Visão Geral",
+              short_name: "Resumo",
+              description: "Acessar o resumo financeiro",
+              url: "/",
+              icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }]
+            }
+          ]
+        }
+      })
+    ],
     define: {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
         process.env.VITE_SUPABASE_URL || 'https://juavorsfoscbtxsiudvv.supabase.co'
