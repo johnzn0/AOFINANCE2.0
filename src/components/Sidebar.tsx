@@ -142,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {onOpenInstallModal && (
+      {onOpenInstallModal && typeof window !== 'undefined' && !window.matchMedia('(display-mode: standalone)').matches && !(window.navigator as any).standalone && (
         <button
           onClick={onOpenInstallModal}
           className="mt-3 flex items-center justify-between p-2.5 bg-gradient-to-r from-blue-600/20 to-amber-500/20 border border-blue-500/30 hover:border-blue-500/60 rounded-xl transition text-left group active:scale-95"

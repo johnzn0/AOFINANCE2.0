@@ -1,28 +1,56 @@
 {
-  "id": "aofinance-pwa-app",
+  "id": "/",
   "short_name": "AO FINANCE",
   "name": "AO FINANCE - Gestão Financeira Inteligente",
-  "description": "Sistema de Gestão Financeira Pessoal com Relatórios, Investimentos e Controle de Contas",
+  "description": "Sistema completo de Gestão Financeira Pessoal com Relatórios, Investimentos e Controle de Contas",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "orientation": "portrait",
+  "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
+  "orientation": "portrait-primary",
   "background_color": "#020617",
   "theme_color": "#020617",
   "categories": ["finance", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/assets/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/assets/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-maskable-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Visão Geral",
+      "short_name": "Resumo",
+      "description": "Acessar o resumo financeiro",
+      "url": "/",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
