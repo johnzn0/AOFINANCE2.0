@@ -20,6 +20,7 @@ export default defineConfig(() => {
           short_name: "AO FINANCE",
           name: "AO FINANCE - Gestão Financeira Inteligente",
           description: "Sistema completo de Gestão Financeira Pessoal com Relatórios, Investimentos e Controle de Contas",
+          lang: "pt-BR",
           start_url: "/",
           scope: "/",
           display: "standalone",
@@ -67,7 +68,7 @@ export default defineConfig(() => {
               short_name: "Resumo",
               description: "Acessar o resumo financeiro",
               url: "/",
-              icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }]
+              icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }]
             }
           ]
         }
