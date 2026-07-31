@@ -242,9 +242,12 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
             ) : (
               <div className="space-y-3">
                 <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-2">
-                  <p className="font-bold text-blue-400">Como criar atalho direto:</p>
+                  <p className="font-bold text-blue-400">Como instalar como Aplicativo Nativo:</p>
                   <p className="text-[11px] leading-relaxed">
-                    Abra o menu do seu navegador <strong>(três pontos ⋮)</strong> e toque em <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à Tela Inicial"</strong>.
+                    1. Caso esteja visualizando o app dentro de um quadro/preview, abra a página em uma <strong>Nova Aba do Navegador</strong>.
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    2. No Chrome do seu celular, abra o menu <strong>(três pontos ⋮)</strong> e selecione <strong>"Instalar aplicativo"</strong> (e não apenas "Criar atalho").
                   </p>
                 </div>
 

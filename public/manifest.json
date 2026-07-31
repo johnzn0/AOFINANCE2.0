@@ -17,13 +17,13 @@
       "src": "/assets/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/assets/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/assets/icon-maskable-192.png",
