@@ -13,13 +13,15 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         injectRegister: 'auto',
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,json,webmanifest}'],
           cleanupOutdatedCaches: true
         },
+        filename: 'manifest.json',
         manifest: {
           short_name: "AO FINANCE",
           name: "AO FINANCE - Gestão Financeira Inteligente",
           description: "Sistema completo de Gestão Financeira Pessoal com Relatórios, Investimentos e Controle de Contas",
+          id: "/",
           lang: "pt-BR",
           start_url: "/",
           scope: "/",
