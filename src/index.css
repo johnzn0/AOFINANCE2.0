@@ -12,9 +12,14 @@
 
 /* Page canvas backgrounds */
 .light-theme .bg-slate-950,
+.light-theme .bg-slate-950\/95,
+.light-theme .bg-slate-950\/90,
+.light-theme .bg-slate-950\/85,
 .light-theme .bg-slate-950\/80,
 .light-theme .bg-slate-950\/60,
-.light-theme .bg-slate-950\/40 {
+.light-theme .bg-slate-950\/50,
+.light-theme .bg-slate-950\/40,
+.light-theme .bg-slate-950\/20 {
   background-color: #f1f5f9 !important;
 }
 
@@ -23,6 +28,7 @@
 .light-theme .bg-slate-900\/90,
 .light-theme .bg-slate-900\/80,
 .light-theme .bg-slate-900\/60,
+.light-theme .bg-slate-900\/50,
 .light-theme .bg-slate-900\/40,
 .light-theme .bg-slate-900\/30 {
   background-color: #ffffff !important;
@@ -35,7 +41,9 @@
 .light-theme .bg-slate-800\/80,
 .light-theme .bg-slate-800\/60,
 .light-theme .bg-slate-800\/40,
-.light-theme .bg-slate-800\/30 {
+.light-theme .bg-slate-800\/30,
+.light-theme .bg-slate-700,
+.light-theme .bg-slate-700\/80 {
   background-color: #f8fafc !important;
 }
 
@@ -46,11 +54,13 @@
 
 /* Crisp, Defined Borders */
 .light-theme .border-slate-800,
+.light-theme .border-slate-800\/90,
 .light-theme .border-slate-800\/80,
 .light-theme .border-slate-800\/60,
 .light-theme .border-slate-800\/40,
 .light-theme .border-slate-800\/20,
 .light-theme .border-slate-700,
+.light-theme .border-slate-700\/80,
 .light-theme .border-slate-700\/60,
 .light-theme .border-slate-700\/40 {
   border-color: #cbd5e1 !important; /* Crisp Slate-300 border */
