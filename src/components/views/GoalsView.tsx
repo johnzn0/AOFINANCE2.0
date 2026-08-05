@@ -7,7 +7,8 @@ interface GoalsViewProps {
   state: AppState;
   onAddGoal: (
     goal: Omit<Goal, 'id' | 'saved' | 'createdDate'>,
-    initialSaved?: number
+    initialSaved?: number,
+    accountId?: string
   ) => void;
   onDeleteGoal: (id: string) => void;
   onOpenGoalContrib: (goalId: string) => void;
@@ -42,7 +43,8 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
         monthlyAmount: kind === 'objetivo' ? parseFloat(monthlyAmount) || 0 : 0,
         accountId: kind === 'objetivo' ? accountId : null,
       },
-      parseFloat(saved) || 0
+      parseFloat(saved) || 0,
+      parseFloat(saved) > 0 ? accountId : undefined
     );
 
     setName('');
@@ -102,7 +104,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
               <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1">
                 Tipo
@@ -179,6 +181,24 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
                   onChange={(e) => setMonthlyAmount(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white font-mono"
                 />
+              </div>
+            )}
+            {(kind === 'objetivo' || parseFloat(saved) > 0) && (
+              <div>
+                <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1">
+                  Conta {kind === 'objetivo' ? 'para Aporte' : 'de Origem'}
+                </label>
+                <select
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white"
+                >
+                  {state.accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
           </div>
