@@ -33,34 +33,28 @@ export default defineConfig(() => {
           prefer_related_applications: false,
           icons: [
             {
-              src: "/icons/icon-192.png",
+              src: "/icons/icon-192.png?v=2",
               type: "image/png",
               sizes: "192x192",
               purpose: "any"
             },
             {
-              src: "/icons/icon-512.png",
+              src: "/icons/icon-512.png?v=2",
               type: "image/png",
               sizes: "512x512",
               purpose: "any"
             },
             {
-              src: "/icons/icon-maskable-192.png",
+              src: "/icons/icon-maskable-192.png?v=2",
               type: "image/png",
               sizes: "192x192",
               purpose: "maskable"
             },
             {
-              src: "/icons/icon-maskable-512.png",
+              src: "/icons/icon-maskable-512.png?v=2",
               type: "image/png",
               sizes: "512x512",
               purpose: "maskable"
-            },
-            {
-              src: "/icons/apple-touch-icon.png",
-              type: "image/png",
-              sizes: "180x180",
-              purpose: "any"
             }
           ],
           shortcuts: [
@@ -69,7 +63,7 @@ export default defineConfig(() => {
               short_name: "Resumo",
               description: "Acessar o resumo financeiro",
               url: "/",
-              icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }]
+              icons: [{ src: "/icons/icon-192.png?v=2", sizes: "192x192", type: "image/png" }]
             }
           ]
         }
