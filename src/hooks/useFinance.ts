@@ -313,47 +313,68 @@ export function useFinance() {
       const newTxList = [...prev.transactions];
       const newInvestments = [...prev.investments];
       
+      const hasInvTag = tx.tags?.some(t => t.toLowerCase().includes('investimento'));
       const isInvestment = tx.type === 'expense' && 
-                           tx.category.toLowerCase().includes('investimento') && 
+                           (tx.category.toLowerCase().includes('investimento') || hasInvTag) && 
                            !tx.category.toLowerCase().includes('resgate');
+
+      const processInvestment = (amount, date, description) => {
+         const existingInvIndex = newInvestments.findIndex(inv => {
+            const invName = inv.name.toLowerCase();
+            const desc = description.toLowerCase();
+            if (desc === invName) return true;
+            if (tx.tags?.some(tag => tag.toLowerCase() === invName)) return true;
+            if (desc.includes(invName) && invName.length > 3) return true;
+            return false;
+         });
+
+         if (existingInvIndex >= 0) {
+            newInvestments[existingInvIndex] = {
+               ...newInvestments[existingInvIndex],
+               invested: round2(newInvestments[existingInvIndex].invested + amount),
+               current: round2(newInvestments[existingInvIndex].current + amount),
+            };
+         } else {
+            let newName = description;
+            if (newName.toLowerCase().includes('investimento') && tx.tags && tx.tags.length > 0) {
+               const potentialName = tx.tags.find(t => !t.toLowerCase().includes('investimento'));
+               if (potentialName) newName = potentialName;
+            }
+            newInvestments.push({
+               id: uid(),
+               name: newName || 'Novo Investimento',
+               type: 'Outros',
+               invested: amount,
+               current: amount,
+               date: date
+            });
+         }
+      };
 
       if (installments > 1) {
         const perAmt = round2(tx.amount / installments);
         const groupId = uid();
         for (let i = 0; i < installments; i++) {
           const finalDate = addMonths(tx.date, i);
+          const desc = `${tx.description} (${i + 1}/${installments})`;
           newTxList.push({
             ...tx,
             id: uid(),
             date: finalDate,
-            description: `${tx.description} (${i + 1}/${installments})`,
+            description: desc,
             amount: perAmt,
             groupId,
             attachment: i === 0 ? tx.attachment : null,
           });
           
           if (isInvestment) {
-             newInvestments.push({
-               id: uid(),
-               name: `${tx.description} (${i + 1}/${installments})`,
-               type: 'Outros',
-               invested: perAmt,
-               current: perAmt,
-               date: finalDate
-             });
+             processInvestment(perAmt, finalDate, desc);
           }
         }
       } else {
         newTxList.push({ ...tx, id: uid() });
         if (isInvestment) {
-           newInvestments.push({
-             id: uid(),
-             name: tx.description || tx.category,
-             type: 'Outros',
-             invested: tx.amount,
-             current: tx.amount,
-             date: tx.date
-           });
+           processInvestment(tx.amount, tx.date, tx.description || tx.category);
         }
       }
       return { ...prev, transactions: newTxList, investments: newInvestments };
