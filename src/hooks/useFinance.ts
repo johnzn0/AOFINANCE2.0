@@ -319,14 +319,34 @@ export function useFinance() {
                            !tx.category.toLowerCase().includes('resgate');
 
       const processInvestment = (amount, date, description) => {
-         const existingInvIndex = newInvestments.findIndex(inv => {
-            const invName = inv.name.toLowerCase();
-            const desc = description.toLowerCase();
-            if (desc === invName) return true;
-            if (tx.tags?.some(tag => tag.toLowerCase() === invName)) return true;
-            if (desc.includes(invName) && invName.length > 3) return true;
+         let existingInvIndex = -1;
+         
+         const descLower = description.toLowerCase().trim();
+         const tagsLower = (tx.tags || []).map(t => t.toLowerCase().trim());
+         
+         // 1. Exact match by name in description or tags
+         existingInvIndex = newInvestments.findIndex(inv => {
+            const invName = inv.name.toLowerCase().trim();
+            if (descLower === invName) return true;
+            if (tagsLower.includes(invName)) return true;
             return false;
          });
+         
+         // 2. Partial match in description or tags
+         if (existingInvIndex === -1) {
+             existingInvIndex = newInvestments.findIndex(inv => {
+                const invName = inv.name.toLowerCase().trim();
+                if (invName.length > 2 && descLower.includes(invName)) return true;
+                if (descLower.length > 2 && invName.includes(descLower)) return true;
+                
+                for (const tag of tagsLower) {
+                   if (tag === 'investimento' || tag === 'investimentos') continue;
+                   if (tag.length > 2 && invName.includes(tag)) return true;
+                   if (invName.length > 2 && tag.includes(invName)) return true;
+                }
+                return false;
+             });
+         }
 
          if (existingInvIndex >= 0) {
             newInvestments[existingInvIndex] = {
