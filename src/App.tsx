@@ -7,7 +7,6 @@ import { MobileNav } from './components/MobileNav';
 import { Header } from './components/Header';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { GoalContribModal } from './components/GoalContribModal';
-import { WithdrawModal } from './components/WithdrawModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { AIAssistantModal } from './components/AIAssistantModal';
 import { saveStateToOfflineCache, saveProfileToOfflineCache } from './mobile/offlineStore';
@@ -246,9 +245,11 @@ export default function App() {
               <InvestmentsView
                 state={finance.state}
                 onAddInvestment={finance.addInvestment}
+                onAddInvestmentContribution={finance.addInvestmentContribution}
+                onUpdateInvestmentMarketValue={finance.updateInvestmentMarketValue}
                 onUpdateInvestment={finance.updateInvestment}
                 onDeleteInvestment={finance.deleteInvestment}
-                onOpenWithdrawModal={(id) => setWithdrawInvId(id)}
+                onWithdrawInvestment={finance.withdrawInvestment}
               />
             )}
 
@@ -301,11 +302,7 @@ export default function App() {
         onConfirm={finance.contributeToGoal}
       />
 
-      <WithdrawModal
-        investment={selectedInvForWithdraw}
-        onClose={() => setWithdrawInvId(null)}
-        onConfirm={finance.withdrawInvestment}
-      />
+
 
       <OnboardingModal
         isOpen={isOnboardingOpen}

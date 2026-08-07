@@ -80,6 +80,15 @@ export interface Goal {
   createdDate: string;
 }
 
+export type InvestmentHistoryType = 'aporte' | 'resgate' | 'atualizacao';
+
+export interface InvestmentHistory {
+  id: string;
+  date: string;
+  type: InvestmentHistoryType;
+  amount: number;
+}
+
 export interface Investment {
   id: string;
   name: string;
@@ -87,6 +96,7 @@ export interface Investment {
   invested: number;
   current: number;
   date: string;
+  history?: InvestmentHistory[];
 }
 
 export type UserRole = 'admin' | 'user';
