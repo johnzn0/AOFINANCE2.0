@@ -95,6 +95,21 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
 
+        {onToggleTheme && (
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            className="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white rounded-lg transition flex items-center justify-center"
+            title={currentTheme === 'light' ? 'Mudar para Modo Escuro' : 'Mudar para Modo Claro'}
+          >
+            {currentTheme === 'light' ? (
+              <Moon className="w-4 h-4 text-indigo-400" />
+            ) : (
+              <Sun className="w-4 h-4 text-amber-400" />
+            )}
+          </button>
+        )}
+
         {onLogout && (
           <button
             onClick={onLogout}

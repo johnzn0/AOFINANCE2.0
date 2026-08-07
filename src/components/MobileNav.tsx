@@ -71,54 +71,53 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
   return (
     <>
-      {/* Native Mobile Bottom Sheet Modal for Secondary Pages */}
+      {/* Native Mobile Full Screen Modal for Secondary Pages */}
       {isMoreOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 md:hidden flex flex-col justify-end animate-in fade-in duration-200">
-          <div className="bg-slate-900 border-t border-slate-800 rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl pb-safe">
-            {/* Sheet Handle */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-800/80 shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-1 bg-slate-700 rounded-full mx-auto" />
-                <span className="font-serif font-bold text-sm text-white">Menu Adicional</span>
-              </div>
+        <div className="fixed inset-0 bg-slate-950 z-50 md:hidden flex flex-col h-[100dvh] w-full overflow-hidden animate-in fade-in duration-200">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-slate-800/80 bg-slate-900/90 shrink-0 pt-safe">
+            <div className="flex items-center gap-2">
+              <span className="font-serif font-bold text-base text-white">Menu Navegação</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMoreOpen(false)}
+              className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 hover:text-white transition active:scale-95"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Content List */}
+          <div className="p-4 space-y-3 overflow-y-auto flex-1 pb-24">
+            {onOpenAssistant && (
               <button
                 type="button"
-                onClick={() => setIsMoreOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
+                onClick={() => {
+                  triggerHapticFeedback('medium');
+                  setIsMoreOpen(false);
+                  onOpenAssistant();
+                }}
+                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-blue-600/20 to-amber-500/20 border border-blue-500/30 rounded-2xl text-left transition active:scale-[0.98]"
               >
-                <X className="w-4 h-4" />
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-amber-500 flex items-center justify-center text-white shrink-0 shadow-md">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-white">Assistente IA AO FINANCE</h4>
+                    <p className="text-xs text-slate-400">Consultoria financeira personalizada</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-amber-400 shrink-0" />
               </button>
+            )}
+
+            <div className="pt-2 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Módulos do Sistema
             </div>
 
-            {/* Content List */}
-            <div className="p-4 space-y-2 overflow-y-auto max-h-[60vh]">
-              {onOpenAssistant && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHapticFeedback('medium');
-                    setIsMoreOpen(false);
-                    onOpenAssistant();
-                  }}
-                  className="w-full flex items-center justify-between p-3.5 bg-gradient-to-r from-blue-600/20 to-amber-500/20 border border-blue-500/30 rounded-2xl text-left transition active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-amber-500 flex items-center justify-center text-white shrink-0 shadow-md">
-                      <Sparkles className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-white">Assistente IA AO FINANCE</h4>
-                      <p className="text-[11px] text-slate-400">Consultoria financeira personalizada</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-amber-400 shrink-0" />
-                </button>
-              )}
-
-              <div className="pt-2 pb-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                Módulos
-              </div>
-
+            <div className="grid grid-cols-1 gap-2.5">
               {secondaryTabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = currentPage === tab.id;
@@ -127,22 +126,22 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => handleSelect(tab.id)}
-                    className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition active:scale-[0.98] ${
+                    className={`w-full flex items-center justify-between p-3.5 rounded-2xl border text-left transition active:scale-[0.98] ${
                       isActive
                         ? 'bg-blue-600/10 border-blue-500/40 text-white'
-                        : 'bg-slate-950/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
+                        : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800/50'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${tab.color}`}>
-                        <Icon className="w-4 h-4" />
+                    <div className="flex items-center gap-3.5">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${tab.color}`}>
+                        <Icon className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-xs text-white">{tab.label}</h4>
-                        <p className="text-[10px] text-slate-400">{tab.desc}</p>
+                        <h4 className="font-bold text-sm text-white">{tab.label}</h4>
+                        <p className="text-xs text-slate-400">{tab.desc}</p>
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-600" />
+                    <ChevronRight className="w-5 h-5 text-slate-600" />
                   </button>
                 );
               })}

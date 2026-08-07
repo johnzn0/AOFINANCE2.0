@@ -15,7 +15,10 @@ import {
   Settings,
   Shield,
   CreditCard,
-  Target
+  Target,
+  Sun,
+  Moon,
+  Palette
 } from 'lucide-react';
 import { AppState, UserSettings, UserProfile } from '../../types';
 import { changePasswordAuthApi, resetPasswordWithApi } from '../../lib/api';
@@ -363,6 +366,71 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           {/* CATEGORIES & INVESTMENTS */}
           {activeTab === 'categories' && (
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+              
+              {/* Tema Visual (Light / Dark) */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/20">
+                    <Palette className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Tema e Aparência</h3>
+                    <p className="text-xs text-slate-400">Alterne entre o modo claro e o modo escuro</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateSettings({ themeMode: 'light' })}
+                    className={`flex items-center gap-4 p-4 rounded-xl border text-left transition active:scale-95 ${
+                      (state.settings.themeMode || 'light') === 'light'
+                        ? 'bg-amber-500/10 border-amber-500/50 text-white shadow-lg shadow-amber-500/10'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                      (state.settings.themeMode || 'light') === 'light' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      <Sun className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                        <span>Modo Claro</span>
+                        {(state.settings.themeMode || 'light') === 'light' && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30">Ativo</span>
+                        )}
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">Fundo claro com alto contraste para ambientes iluminados</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onUpdateSettings({ themeMode: 'dark' })}
+                    className={`flex items-center gap-4 p-4 rounded-xl border text-left transition active:scale-95 ${
+                      state.settings.themeMode === 'dark'
+                        ? 'bg-blue-600/10 border-blue-500/50 text-white shadow-lg shadow-blue-500/10'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                      state.settings.themeMode === 'dark' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      <Moon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                        <span>Modo Escuro</span>
+                        {state.settings.themeMode === 'dark' && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30">Ativo</span>
+                        )}
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">Fundo escuro elegante, ideal para ambientes noturnos</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
               
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-6">
