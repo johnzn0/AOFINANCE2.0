@@ -509,7 +509,7 @@ export function useFinance() {
 
       const newTx: Transaction = {
         id: uid(),
-        date: date || todayISO(),
+        date: todayISO(),
         type: 'expense',
         category: 'Cartão de crédito',
         description: `Fatura ${card.name} (${invoiceMonth})`,
