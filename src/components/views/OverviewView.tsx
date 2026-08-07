@@ -84,7 +84,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                const currentMonthStr = todayISO().slice(0, 7);
                const currentInvoice = state.cardPurchases.filter(p => p.cardId === c.id && p.date.startsWith(currentMonthStr)).reduce((s, p) => s + p.amount, 0);
                if (currentInvoice > 0) {
-                  bills.push({ id: c.id, name: `Fatura \${c.name}`, amount: currentInvoice, day: c.dueDay, type: 'card', category: 'Cartão de Crédito' });
+                  bills.push({ id: c.id, name: `Fatura ${c.name}`, amount: currentInvoice, day: c.dueDay, type: 'card', category: 'Cartão de Crédito' });
                }
            }
         });
@@ -92,23 +92,50 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
     return bills.sort((a, b) => a.day - b.day).slice(0, 4);
   }, [state, isCurrentMonth, todayNum]);
 
+  // Chart View mode state: 'acc' (Acumulado) vs 'daily' (Diário)
+  const [chartMode, setChartMode] = React.useState<'acc' | 'daily'>('acc');
+
   // Daily Expenses for Area Chart
   const dailyExpenses = useMemo(() => {
     if (monthTx.length === 0) return [];
     const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
     const data = [];
     let acc = 0;
-    for (let i = 1; i <= daysInMonth; i++) {
-       const dateStr = `\${curKey}-\${i.toString().padStart(2, '0')}`;
+    const limitDay = isCurrentMonth ? Math.min(todayNum, daysInMonth) : daysInMonth;
+
+    for (let i = 1; i <= limitDay; i++) {
+       const dateStr = `${curKey}-${i.toString().padStart(2, '0')}`;
        const dayTxs = monthTx.filter(t => t.type === 'expense' && t.date === dateStr);
        const dayTotal = dayTxs.reduce((s, t) => s + t.amount, 0);
        acc += dayTotal;
-       data.push({ day: i, amount: dayTotal, acc });
-       
-       if (isCurrentMonth && i === todayNum) break; // Only plot up to today if current month
+       data.push({ 
+         day: i, 
+         label: `Dia ${i}`,
+         dateStr, 
+         amount: dayTotal, 
+         acc 
+       });
     }
     return data;
   }, [monthTx, cursor, curKey, isCurrentMonth, todayNum]);
+
+  // Chart statistics
+  const chartStats = useMemo(() => {
+    if (dailyExpenses.length === 0) return { totalAcc: 0, avgDaily: 0, maxDay: null };
+    const totalAcc = dailyExpenses[dailyExpenses.length - 1]?.acc || 0;
+    const avgDaily = totalAcc / dailyExpenses.length;
+    let maxDayItem = dailyExpenses[0];
+    for (const d of dailyExpenses) {
+      if (d.amount > (maxDayItem?.amount || 0)) {
+        maxDayItem = d;
+      }
+    }
+    return {
+      totalAcc,
+      avgDaily,
+      maxDay: maxDayItem && maxDayItem.amount > 0 ? maxDayItem : null
+    };
+  }, [dailyExpenses]);
 
   return (
     <div className="space-y-6 pb-24 animate-in fade-in duration-500">
@@ -187,61 +214,130 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           
           {/* Expenses Chart */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <div>
                 <h3 className="text-base font-semibold text-white flex items-center gap-2">
                   <Activity className="w-4 h-4 text-blue-400" /> Curva de Gastos
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">Evolução acumulada das despesas no mês</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {chartMode === 'acc' ? 'Evolução acumulada das despesas ao longo do mês' : 'Gastos diários individuais do mês'}
+                </p>
+              </div>
+
+              {/* Mode Selector Buttons */}
+              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setChartMode('acc')}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                    chartMode === 'acc'
+                      ? 'bg-rose-500 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Acumulado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartMode('daily')}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                    chartMode === 'daily'
+                      ? 'bg-rose-500 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Diário
+                </button>
               </div>
             </div>
+
+            {/* Chart Summary Stats Bar */}
+            {dailyExpenses.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5 p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Total Acumulado</span>
+                  <span className="text-sm font-mono font-bold text-rose-400">{fmt(chartStats.totalAcc)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Média Diária</span>
+                  <span className="text-sm font-mono font-bold text-slate-200">{fmt(chartStats.avgDaily)}</span>
+                </div>
+                {chartStats.maxDay && (
+                  <div className="col-span-2 sm:col-span-1">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Maior Gasto (Dia {chartStats.maxDay.day})</span>
+                    <span className="text-sm font-mono font-bold text-amber-400">{fmt(chartStats.maxDay.amount)}</span>
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="h-64 w-full">
               {dailyExpenses.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={dailyExpenses} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                  <AreaChart data={dailyExpenses} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorAcc" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.3} />
+                        <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.4} />
                         <stop offset="95%" stopColor="#F43F5E" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorDaily" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
-                    <XAxis dataKey="day" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} />
+                    <XAxis 
+                      dataKey="day" 
+                      stroke="#64748B" 
+                      fontSize={11} 
+                      tickLine={false} 
+                      axisLine={false}
+                      tickFormatter={(val) => `Dia ${val}`}
+                    />
                     <YAxis 
-                       stroke="#64748B" 
-                       fontSize={11} 
-                       tickLine={false} 
-                       axisLine={false}
-                       tickFormatter={(v) => `\${(v/1000).toFixed(1)}k`}
+                      stroke="#64748B" 
+                      fontSize={11} 
+                      tickLine={false} 
+                      axisLine={false}
+                      tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`)}
                     />
                     <Tooltip
-                      formatter={(val: number) => fmt(val)}
-                      labelFormatter={(label) => `Dia \${label}`}
-                      contentStyle={{
-                        backgroundColor: '#0F172A',
-                        borderColor: '#1E293B',
-                        borderRadius: '12px',
-                        color: '#F8FAFC',
-                        fontSize: '12px',
-                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs shadow-xl space-y-1">
+                              <p className="font-bold text-white border-b border-slate-800 pb-1">Dia {data.day}</p>
+                              <div className="flex justify-between gap-4 text-slate-300">
+                                <span>Gasto do dia:</span>
+                                <span className="font-mono font-bold text-blue-400">{fmt(data.amount)}</span>
+                              </div>
+                              <div className="flex justify-between gap-4 text-slate-300">
+                                <span>Acumulado:</span>
+                                <span className="font-mono font-bold text-rose-400">{fmt(data.acc)}</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
                       }}
                     />
                     <Area
                       type="monotone"
-                      dataKey="acc"
-                      name="Acumulado"
-                      stroke="#F43F5E"
+                      dataKey={chartMode === 'acc' ? 'acc' : 'amount'}
+                      name={chartMode === 'acc' ? 'Acumulado' : 'Gasto Diário'}
+                      stroke={chartMode === 'acc' ? '#F43F5E' : '#3B82F6'}
                       strokeWidth={3}
                       fillOpacity={1}
-                      fill="url(#colorAcc)"
+                      fill={chartMode === 'acc' ? 'url(#colorAcc)' : 'url(#colorDaily)'}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 border border-slate-800 border-dashed rounded-xl bg-slate-900/50">
-                  <Activity className="w-8 h-8 mb-2 opacity-50" />
-                  <p className="text-xs">Nenhum gasto registrado este mês.</p>
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 border border-slate-800 border-dashed rounded-xl bg-slate-900/50 p-6 text-center">
+                  <Activity className="w-8 h-8 mb-2 opacity-50 text-rose-400" />
+                  <p className="text-xs font-semibold text-slate-300">Nenhum gasto registrado este mês.</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">As despesas do mês aparecerão aqui em formato gráfico.</p>
                 </div>
               )}
             </div>
@@ -299,7 +395,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
                   <div 
                     className="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full rounded-full" 
-                    style={{ width: `\${emergencyPct}%` }}
+                    style={{ width: `${emergencyPct}%` }}
                   ></div>
                 </div>
               </div>
@@ -327,7 +423,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 upcomingBills.map((b, i) => (
                   <div key={b.id + i} className="flex items-center justify-between p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl hover:bg-slate-800/50 transition">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 \${b.type === 'card' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${b.type === 'card' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
                          {b.type === 'card' ? <CreditCard className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
                       </div>
                       <div>
