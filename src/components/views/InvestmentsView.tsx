@@ -5,7 +5,7 @@ import { fmt, round2 } from '../../utils/formatters';
 
 interface InvestmentsViewProps {
   state: AppState;
-  onAddInvestment: (inv: Omit<Investment, 'id' | 'date'>) => void;
+  onAddInvestment: (inv: Omit<Investment, 'id' | 'date'>, accountId?: string) => void;
   onUpdateInvestment: (id: string, updated: Partial<Investment>) => void;
   onDeleteInvestment: (id: string) => void;
   onOpenWithdrawModal: (id: string) => void;
@@ -23,6 +23,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({
   const [type, setType] = useState(state.settings.investmentTypes[0] || 'Renda Fixa');
   const [invested, setInvested] = useState('');
   const [current, setCurrent] = useState('');
+  const [accountId, setAccountId] = useState(state.accounts[0]?.id || '');
 
   const totalInvested = state.investments.reduce((s, i) => s + i.invested, 0);
   const totalCurrent = state.investments.reduce((s, i) => s + i.current, 0);
@@ -49,7 +50,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({
         type,
         invested: invVal,
         current: curVal,
-      });
+      }, accountId);
     }
 
     setName('');
@@ -116,7 +117,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({
           <span>{editingId ? 'Editar Ativo' : 'Novo Ativo na Carteira'}</span>
         </h3>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-6 gap-3 text-xs">
           <div className="sm:col-span-2">
             <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1">
               Nome do Ativo
@@ -179,8 +180,26 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white font-mono"
             />
           </div>
+          {!editingId && (
+            <div>
+              <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1">
+                Conta de Origem
+              </label>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white"
+              >
+                {state.accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          <div className="sm:col-span-5 flex justify-end gap-2 pt-2">
+          <div className="sm:col-span-full flex justify-end gap-2 pt-2">
             {editingId && (
               <button
                 type="button"
