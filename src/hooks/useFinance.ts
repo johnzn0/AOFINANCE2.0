@@ -349,10 +349,17 @@ export function useFinance() {
          }
 
          if (existingInvIndex >= 0) {
+            const oldInv = newInvestments[existingInvIndex];
             newInvestments[existingInvIndex] = {
-               ...newInvestments[existingInvIndex],
-               invested: round2(newInvestments[existingInvIndex].invested + amount),
-               current: round2(newInvestments[existingInvIndex].current + amount),
+               ...oldInv,
+               invested: round2(oldInv.invested + amount),
+               current: round2(oldInv.current + amount),
+               history: [...(oldInv.history || []), {
+                 id: uid(),
+                 date: date,
+                 type: 'aporte',
+                 amount: amount
+               }]
             };
          } else {
             let newName = description;
@@ -366,7 +373,13 @@ export function useFinance() {
                type: 'Outros',
                invested: amount,
                current: amount,
-               date: date
+               date: date,
+               history: [{
+                 id: uid(),
+                 date: date,
+                 type: 'aporte',
+                 amount: amount
+               }]
             });
          }
       };
