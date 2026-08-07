@@ -220,6 +220,8 @@ export default function App() {
                 state={finance.state}
                 onAddTransaction={finance.addTransaction}
                 onDeleteTransaction={finance.deleteTransaction}
+                onContributeToGoal={finance.contributeToGoal}
+                onContributeToInvestment={finance.addInvestmentContribution}
               />
             )}
 

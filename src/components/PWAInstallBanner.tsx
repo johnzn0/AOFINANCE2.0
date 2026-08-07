@@ -112,7 +112,7 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
     <>
       {/* Top Floating Notification Banner */}
       {showBanner && !showInstallModal && (
-        <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-amber-950 border-b border-blue-500/30 text-white px-4 py-3 relative z-30 shadow-xl animate-in slide-in-from-top duration-300">
+        <div className="bg-slate-900 bg-gradient-to-r from-blue-900/20 via-transparent to-amber-900/20 border-b border-blue-500/30 text-white px-4 py-3 relative z-30 shadow-xl animate-in slide-in-from-top duration-300">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-amber-500 flex items-center justify-center font-serif font-black text-white text-sm shadow-md shrink-0">

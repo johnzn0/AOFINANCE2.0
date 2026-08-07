@@ -112,7 +112,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUserEmail }) => {
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-blue-900/60 via-slate-900 to-slate-900 border border-blue-500/30 rounded-2xl p-6 space-y-2">
+      <div className="bg-slate-900 bg-gradient-to-r from-blue-900/30 via-transparent to-transparent border border-blue-500/30 rounded-2xl p-6 space-y-2">
         <div className="flex items-center gap-2 text-blue-400">
           <Shield className="w-5 h-5" />
           <span className="text-xs font-semibold uppercase tracking-wider">

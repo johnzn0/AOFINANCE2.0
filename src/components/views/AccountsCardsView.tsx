@@ -1,708 +1,344 @@
 import React, { useState } from 'react';
-import {
-  Landmark,
-  ArrowRightLeft,
-  CreditCard as CreditCardIcon,
-  Clock,
-  Plus,
-  Trash2,
+import { 
+  Landmark, 
+  ArrowRightLeft, 
+  CreditCard as CreditCardIcon, 
+  Clock, 
+  Plus, 
+  Trash2, 
+  X,
+  Wallet,
+  Building2,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
+  TrendingDown
 } from 'lucide-react';
-import {
-  AppState,
-  Account,
-  CreditCard,
-  CardPurchase,
-  RecurringBill,
-} from '../../types';
-import {
-  fmt,
-  calculateAccountBalance,
-  round2,
-  formatDate,
-  todayISO,
-  accountName,
-} from '../../utils/formatters';
+import { AppState, Account, CreditCard, CardPurchase, RecurringBill } from '../../types';
+import { fmt, calculateAccountBalance, formatDate } from '../../utils/formatters';
 
 interface AccountsCardsViewProps {
   state: AppState;
-  onAddAccount: (name: string, type?: Account['type']) => void;
-  onRemoveAccount: (id: string) => void;
-  onAddTransfer: (tr: {
-    fromId: string;
-    toId: string;
-    amount: number;
-    date: string;
-    note?: string;
-  }) => void;
-  onDeleteTransfer: (id: string) => void;
-  onAddCard: (card: Omit<CreditCard, 'id'>) => void;
-  onRemoveCard: (id: string) => void;
-  onAddCardPurchase: (
-    purchase: Omit<CardPurchase, 'id' | 'paid' | 'invoiceMonth'>,
-    installments: number,
-    card: CreditCard
-  ) => void;
-  onPayCardInvoice: (cardId: string, invoiceMonth: string, accountId: string) => void;
-  onDeleteCardPurchase: (id: string) => void;
-  onAddRecurringBill: (bill: Omit<RecurringBill, 'id'>) => void;
+  onAddAccount: (name: string) => void;
+  onAddCard: (name: string, limit: number, closingDate: number, dueDate: number) => void;
+  onAddCardPurchase: (cardId: string, description: string, amount: number, installments: number, date: string) => void;
+  onPayCardInvoice: (cardId: string, amount: number, accountId: string, month: string) => void;
+  onAddRecurringBill: (name: string, amount: number, day: number, category: string, accountId: string) => void;
   onToggleRecurringBill: (id: string) => void;
   onRemoveRecurringBill: (id: string) => void;
+  onTransfer: (fromAccountId: string, toAccountId: string, amount: number, date: string, description: string) => void;
 }
 
 export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
   state,
   onAddAccount,
-  onRemoveAccount,
-  onAddTransfer,
-  onDeleteTransfer,
   onAddCard,
-  onRemoveCard,
   onAddCardPurchase,
   onPayCardInvoice,
-  onDeleteCardPurchase,
   onAddRecurringBill,
   onToggleRecurringBill,
   onRemoveRecurringBill,
+  onTransfer
 }) => {
-  // Account Form
-  const [newAccName, setNewAccName] = useState('');
+  // Modal States
+  const [activeModal, setActiveModal] = useState<'none' | 'account' | 'card' | 'transfer' | 'purchase' | 'bill'>('none');
 
-  // Transfer Form
-  const [trFrom, setTrFrom] = useState(state.accounts[0]?.id || '');
-  const [trTo, setTrTo] = useState(state.accounts[1]?.id || state.accounts[0]?.id || '');
-  const [trAmount, setTrAmount] = useState('');
-  const [trDate, setTrDate] = useState(todayISO());
-  const [trNote, setTrNote] = useState('');
-
-  // Card Form
+  // Form States - Account
+  const [accountName, setAccountName] = useState('');
+  
+  // Form States - Transfer
+  const [transferFrom, setTransferFrom] = useState(state.accounts[0]?.id || '');
+  const [transferTo, setTransferTo] = useState(state.accounts[1]?.id || '');
+  const [transferAmount, setTransferAmount] = useState('');
+  
+  // Form States - Card
   const [cardName, setCardName] = useState('');
   const [cardLimit, setCardLimit] = useState('');
-  const [cardClosing, setCardClosing] = useState('10');
-  const [cardDue, setCardDue] = useState('17');
+  const [cardClosing, setCardClosing] = useState('');
+  const [cardDue, setCardDue] = useState('');
 
-  // Card Purchase Form
+  // Form States - Purchase
   const [cpCardId, setCpCardId] = useState(state.cards[0]?.id || '');
-  const [cpDesc, setCpDesc] = useState('');
-  const [cpCat, setCpCat] = useState(state.settings.categories[0] || 'Outros');
-  const [cpDate, setCpDate] = useState(todayISO());
   const [cpAmount, setCpAmount] = useState('');
-  const [cpInstallments, setCpInstallments] = useState('1');
+  const [cpDesc, setCpDesc] = useState('');
 
-  // Recurring Bill Form
-  const [billName, setBillName] = useState('');
-  const [billDay, setBillDay] = useState('10');
-  const [billAmount, setBillAmount] = useState('');
-  const [billCategory, setBillCategory] = useState(state.settings.categories[0] || 'Outros');
-  const [billAccount, setBillAccount] = useState(state.accounts[0]?.id || '');
-
-  // Pay invoice account selection state
-  const [payAccounts, setPayAccounts] = useState<Record<string, string>>({});
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
-
+  // Handlers
   const handleAddAccount = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAccName.trim()) return;
-    onAddAccount(newAccName.trim());
-    setNewAccName('');
+    if (accountName.trim()) {
+      onAddAccount(accountName);
+      setAccountName('');
+      setActiveModal('none');
+    }
   };
 
-  const handleAddTransfer = (e: React.FormEvent) => {
+  const handleTransfer = (e: React.FormEvent) => {
     e.preventDefault();
-    const val = parseFloat(trAmount);
-    if (!val || val <= 0 || !trFrom || !trTo || trFrom === trTo) return;
-    onAddTransfer({
-      fromId: trFrom,
-      toId: trTo,
-      amount: val,
-      date: trDate || todayISO(),
-      note: trNote.trim(),
-    });
-    setTrAmount('');
-    setTrNote('');
+    const amt = parseFloat(transferAmount.replace(/[^0-9.]/g, ''));
+    if (amt > 0 && transferFrom && transferTo && transferFrom !== transferTo) {
+      onTransfer(transferFrom, transferTo, amt, new Date().toISOString().split('T')[0], 'Transferência entre contas');
+      setActiveModal('none');
+      setTransferAmount('');
+    }
   };
 
   const handleAddCard = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cardName.trim()) return;
-    onAddCard({
-      name: cardName.trim(),
-      limit: parseFloat(cardLimit) || 0,
-      closingDay: Math.min(31, Math.max(1, parseInt(cardClosing) || 10)),
-      dueDay: Math.min(31, Math.max(1, parseInt(cardDue) || 17)),
-    });
-    setCardName('');
-    setCardLimit('');
+    if (cardName && parseFloat(cardLimit) > 0) {
+      onAddCard(cardName, parseFloat(cardLimit), parseInt(cardClosing || '25'), parseInt(cardDue || '5'));
+      setActiveModal('none');
+    }
   };
 
-  const handleAddCardPurchase = (e: React.FormEvent) => {
+  const handleAddPurchase = (e: React.FormEvent) => {
     e.preventDefault();
-    const card = state.cards.find((c) => c.id === (cpCardId || state.cards[0]?.id));
-    const val = parseFloat(cpAmount);
-    if (!card || !val || val <= 0 || !cpDesc.trim()) return;
-
-    onAddCardPurchase(
-      {
-        cardId: card.id,
-        date: cpDate || todayISO(),
-        description: cpDesc.trim(),
-        category: cpCat,
-        amount: val,
-      },
-      Math.max(1, parseInt(cpInstallments) || 1),
-      card
-    );
-
-    setCpDesc('');
-    setCpAmount('');
-    setCpInstallments('1');
+    if (cpDesc && parseFloat(cpAmount) > 0) {
+      onAddCardPurchase(cpCardId, cpDesc, parseFloat(cpAmount), 1, new Date().toISOString().split('T')[0]);
+      setActiveModal('none');
+      setCpDesc('');
+      setCpAmount('');
+    }
   };
 
-  const handleAddRecurringBill = (e: React.FormEvent) => {
-    e.preventDefault();
-    const val = parseFloat(billAmount);
-    if (!billName.trim() || !val || val <= 0) return;
-    onAddRecurringBill({
-      name: billName.trim(),
-      day: Math.min(31, Math.max(1, parseInt(billDay) || 1)),
-      amount: val,
-      category: billCategory,
-      accountId: billAccount || state.accounts[0]?.id || 'acc-1',
-      active: true,
-    });
-    setBillName('');
-    setBillAmount('');
-  };
-
-  const toggleExpandCard = (cardId: string) => {
-    setExpandedCards((prev) => ({ ...prev, [cardId]: !prev[cardId] }));
-  };
+  // Helper calculation
+  const totalBalance = state.accounts.reduce((sum, acc) => sum + calculateAccountBalance(acc.id, state), 0);
 
   return (
-    <div className="space-y-6">
-      {/* Bank Accounts & Transfers Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bank Accounts */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-serif font-bold text-white">
-            <Landmark className="w-4 h-4 text-blue-400" />
-            <span>Contas Bancárias</span>
+    <div className="space-y-8 pb-24 relative">
+      
+      {/* Overview Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+           <h2 className="text-3xl font-serif font-bold text-white mb-1">Patrimônio</h2>
+           <p className="text-slate-400 text-sm">Gerencie suas contas, saldos e cartões de crédito</p>
+        </div>
+        <div className="flex gap-2">
+           <button onClick={() => setActiveModal('transfer')} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+             <ArrowRightLeft className="w-4 h-4" /> Transferir
+           </button>
+        </div>
+      </div>
+
+      {/* --- ACCOUNTS SECTION --- */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Landmark className="w-5 h-5 text-emerald-400" /> Contas Bancárias
+          </h3>
+          <button onClick={() => setActiveModal('account')} className="text-emerald-400 hover:text-emerald-300 text-sm font-semibold flex items-center gap-1 transition">
+            <Plus className="w-4 h-4" /> Adicionar
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Total Box */}
+          <div className="bg-slate-900 bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-2xl p-5 flex flex-col justify-between h-32">
+            <div className="text-emerald-400 opacity-90 text-sm font-semibold uppercase tracking-wider">Saldo Total</div>
+            <div className="text-3xl font-bold font-mono text-white">{fmt(totalBalance)}</div>
           </div>
 
-          <div className="space-y-2">
-            {state.accounts.map((acc) => {
-              const bal = calculateAccountBalance(acc.id, state);
-              return (
-                <div
-                  key={acc.id}
-                  className="flex items-center justify-between p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-xs"
-                >
-                  <div>
-                    <span className="font-semibold text-slate-100 block">{acc.name}</span>
-                    <span className="text-[10px] text-slate-500">
-                      ID: {acc.id} · {acc.type || 'Corrente'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`font-mono font-bold ${
-                        bal >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                      }`}
-                    >
-                      {fmt(bal)}
-                    </span>
-                    {state.accounts.length > 1 && (
-                      <button
-                        onClick={() => onRemoveAccount(acc.id)}
-                        className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
-                        title="Remover conta"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
+          {state.accounts.map(acc => {
+            const bal = calculateAccountBalance(acc.id, state);
+            return (
+              <div key={acc.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between h-32 hover:border-slate-700 transition group cursor-pointer">
+                 <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                       <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 group-hover:bg-blue-500 group-hover:text-white transition">
+                         <Building2 className="w-4 h-4" />
+                       </div>
+                       <span className="font-semibold text-slate-200">{acc.name}</span>
+                    </div>
+                 </div>
+                 <div className="text-xl font-bold font-mono text-white">{fmt(bal)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+
+      {/* --- CREDIT CARDS SECTION --- */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <CreditCardIcon className="w-5 h-5 text-blue-400" /> Cartões de Crédito
+          </h3>
+          <div className="flex gap-3">
+            <button onClick={() => setActiveModal('purchase')} className="text-slate-400 hover:text-white text-sm font-semibold flex items-center gap-1 transition">
+              <Plus className="w-4 h-4" /> Compra
+            </button>
+            <button onClick={() => setActiveModal('card')} className="text-blue-400 hover:text-blue-300 text-sm font-semibold flex items-center gap-1 transition">
+              <Plus className="w-4 h-4" /> Adicionar Cartão
+            </button>
+          </div>
+        </div>
+
+        {state.cards.length === 0 ? (
+           <div className="bg-slate-900 border border-slate-800 border-dashed rounded-2xl p-8 text-center">
+             <CreditCardIcon className="w-10 h-10 text-slate-700 mx-auto mb-3" />
+             <p className="text-slate-400">Você ainda não tem cartões cadastrados.</p>
+           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {state.cards.map(card => {
+               // Calculate used limit
+               const currentMonth = new Date().toISOString().slice(0, 7);
+               const currentInvoice = state.cardPurchases.filter(p => p.cardId === card.id && p.date.startsWith(currentMonth)).reduce((s, p) => s + p.amount, 0);
+               const usedPct = card.limit > 0 ? Math.min((currentInvoice / card.limit) * 100, 100) : 0;
+
+               return (
+                 <div key={card.id} className="relative bg-slate-900 bg-gradient-to-br from-slate-800/50 to-transparent border border-slate-700 rounded-2xl p-5 overflow-hidden shadow-xl">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                    
+                    <div className="flex justify-between items-center mb-6">
+                       <span className="font-bold text-white tracking-wide">{card.name}</span>
+                       <div className="flex gap-1">
+                          <div className="w-6 h-6 rounded-full bg-red-500/80 mix-blend-screen"></div>
+                          <div className="w-6 h-6 rounded-full bg-orange-500/80 mix-blend-screen -ml-3"></div>
+                       </div>
+                    </div>
+
+                    <div className="space-y-4">
+                       <div>
+                         <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Fatura Atual</div>
+                         <div className="text-2xl font-bold font-mono text-white">{fmt(currentInvoice)}</div>
+                       </div>
+                       
+                       <div className="space-y-1">
+                         <div className="flex justify-between text-xs text-slate-400">
+                           <span>Limite Usado</span>
+                           <span className="font-mono">{fmt(currentInvoice)} / {fmt(card.limit)}</span>
+                         </div>
+                         <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${usedPct}%` }}></div>
+                         </div>
+                       </div>
+
+                       <div className="flex justify-between text-xs text-slate-500 pt-2 border-t border-slate-700/50">
+                         <span>Vence dia {card.dueDate}</span>
+                         <span>Fecha dia {card.closingDate}</span>
+                       </div>
+                    </div>
+                 </div>
+               )
             })}
           </div>
+        )}
+      </section>
 
-          <form onSubmit={handleAddAccount} className="flex gap-2 pt-2">
-            <input
-              type="text"
-              placeholder="Nome da nova conta (Ex.: C6 Bank, Caixinha)"
-              value={newAccName}
-              onChange={(e) => setNewAccName(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
-            />
-            <button
-              type="submit"
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition"
-            >
-              Adicionar
-            </button>
-          </form>
-        </div>
-
-        {/* Transfers */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-serif font-bold text-white">
-            <ArrowRightLeft className="w-4 h-4 text-blue-400" />
-            <span>Transferência Entre Contas</span>
-          </div>
-
-          <form onSubmit={handleAddTransfer} className="space-y-3 text-xs">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] text-slate-400 font-medium mb-1">De</label>
-                <select
-                  value={trFrom}
-                  onChange={(e) => setTrFrom(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white"
-                >
-                  {state.accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-slate-400 font-medium mb-1">Para</label>
-                <select
-                  value={trTo}
-                  onChange={(e) => setTrTo(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white"
-                >
-                  {state.accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] text-slate-400 font-medium mb-1">
-                  Valor (R$)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  value={trAmount}
-                  onChange={(e) => setTrAmount(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-slate-400 font-medium mb-1">Data</label>
-                <input
-                  type="date"
-                  value={trDate}
-                  onChange={(e) => setTrDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white font-mono"
-                />
-              </div>
-            </div>
-
-            <div>
-              <input
-                type="text"
-                placeholder="Observação (Ex.: Cobrir fatura, reserva)"
-                value={trNote}
-                onChange={(e) => setTrNote(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition"
-            >
-              Transferir Saldo
-            </button>
-          </form>
-
-          {/* Transfers History */}
-          <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-            {state.transfers.slice(0, 5).map((tr) => (
-              <div
-                key={tr.id}
-                className="flex items-center justify-between p-2 bg-slate-950/40 border border-slate-800/80 rounded-lg text-[11px]"
-              >
-                <span className="text-slate-400 truncate">
-                  {formatDate(tr.date)} · {accountName(tr.fromId, state.accounts)} →{' '}
-                  {accountName(tr.toId, state.accounts)}
-                </span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-mono font-medium text-slate-200">{fmt(tr.amount)}</span>
-                  <button
-                    onClick={() => onDeleteTransfer(tr.id)}
-                    className="p-0.5 rounded text-slate-500 hover:text-rose-400 transition"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Credit Cards Section */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-6">
-        <div className="flex items-center gap-2 text-sm font-serif font-bold text-white">
-          <CreditCardIcon className="w-4 h-4 text-blue-400" />
-          <span>Cartões de Crédito & Faturas</span>
-        </div>
-
-        {/* Existing Cards List */}
-        <div className="space-y-4">
-          {state.cards.length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-4">
-              Nenhum cartão de crédito cadastrado.
-            </p>
-          ) : (
-            state.cards.map((card) => {
-              const pendingPurchases = state.cardPurchases.filter(
-                (p) => p.cardId === card.id && !p.paid
-              );
-              const totalOpen = round2(
-                pendingPurchases.reduce((s, p) => s + p.amount, 0)
-              );
-
-              // Group pending purchases by invoiceMonth
-              const byMonth: Record<string, CardPurchase[]> = {};
-              pendingPurchases.forEach((p) => {
-                (byMonth[p.invoiceMonth] = byMonth[p.invoiceMonth] || []).push(p);
-              });
-              const months = Object.keys(byMonth).sort();
-
-              const isExpanded = expandedCards[card.id];
-
-              return (
-                <div
-                  key={card.id}
-                  className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3"
-                >
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      {/* --- MODALS OVERLAYS --- */}
+      {activeModal !== 'none' && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
+             
+             {/* Account Modal */}
+             {activeModal === 'account' && (
+               <form onSubmit={handleAddAccount} className="p-6">
+                 <div className="flex justify-between items-center mb-6">
+                   <h3 className="text-lg font-bold text-white">Nova Conta Bancária</h3>
+                   <button type="button" onClick={() => setActiveModal('none')} className="text-slate-500 hover:text-white transition"><X className="w-5 h-5"/></button>
+                 </div>
+                 <div className="space-y-4">
                     <div>
-                      <h4 className="font-semibold text-sm text-white">{card.name}</h4>
-                      <p className="text-[10px] text-slate-400">
-                        Fecha dia {card.closingDay} · Vence dia {card.dueDay}
-                        {card.limit > 0 ? ` · Limite: ${fmt(card.limit)}` : ''}
-                      </p>
+                      <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Nome da Instituição</label>
+                      <input type="text" autoFocus value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="Ex: Nubank, Itaú..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 focus:outline-none transition" required />
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-[10px] text-slate-400 block">Total em aberto</span>
-                        <span className="font-mono font-bold text-amber-400 text-sm">
-                          {fmt(totalOpen)}
-                        </span>
+                    <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition">Criar Conta</button>
+                 </div>
+               </form>
+             )}
+
+             {/* Transfer Modal */}
+             {activeModal === 'transfer' && (
+               <form onSubmit={handleTransfer} className="p-6">
+                 <div className="flex justify-between items-center mb-6">
+                   <h3 className="text-lg font-bold text-white">Transferência</h3>
+                   <button type="button" onClick={() => setActiveModal('none')} className="text-slate-500 hover:text-white transition"><X className="w-5 h-5"/></button>
+                 </div>
+                 <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Origem</label>
+                        <select value={transferFrom} onChange={e => setTransferFrom(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-sm text-white focus:border-blue-500 outline-none">
+                          {state.accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                        </select>
                       </div>
-                      <button
-                        onClick={() => onRemoveCard(card.id)}
-                        className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div>
+                        <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Destino</label>
+                        <select value={transferTo} onChange={e => setTransferTo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-sm text-white focus:border-blue-500 outline-none">
+                          {state.accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                        </select>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Invoice Months */}
-                  {months.length === 0 ? (
-                    <p className="text-xs text-slate-500">Nenhuma compra pendente.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {(isExpanded ? months : months.slice(0, 1)).map((m) => {
-                        const items = byMonth[m];
-                        const monthTotal = round2(
-                          items.reduce((s, p) => s + p.amount, 0)
-                        );
-                        const selectedPayAcc =
-                          payAccounts[`${card.id}_${m}`] || state.accounts[0]?.id || '';
-
-                        return (
-                          <div
-                            key={m}
-                            className="bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs space-y-2"
-                          >
-                            <div className="flex justify-between items-center font-semibold text-slate-200">
-                              <span>Fatura {m}</span>
-                              <span className="font-mono text-amber-400">{fmt(monthTotal)}</span>
-                            </div>
-
-                            <div className="space-y-1">
-                              {items.map((p) => (
-                                <div
-                                  key={p.id}
-                                  className="flex justify-between text-slate-400 text-[11px]"
-                                >
-                                  <span>{p.description}</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono">{fmt(p.amount)}</span>
-                                    <button
-                                      onClick={() => onDeleteCardPurchase(p.id)}
-                                      className="text-slate-500 hover:text-rose-400"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Pay invoice button */}
-                            <div className="flex items-center gap-2 pt-2 border-t border-slate-800">
-                              <select
-                                value={selectedPayAcc}
-                                onChange={(e) =>
-                                  setPayAccounts((prev) => ({
-                                    ...prev,
-                                    [`${card.id}_${m}`]: e.target.value,
-                                  }))
-                                }
-                                className="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-300 text-[11px]"
-                              >
-                                {state.accounts.map((a) => (
-                                  <option key={a.id} value={a.id}>
-                                    {a.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                onClick={() =>
-                                  onPayCardInvoice(card.id, m, selectedPayAcc)
-                                }
-                                className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-semibold text-[11px] transition"
-                              >
-                                Pagar Fatura
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {months.length > 1 && (
-                        <button
-                          onClick={() => toggleExpandCard(card.id)}
-                          className="w-full text-center text-[11px] text-blue-400 hover:underline py-1 flex items-center justify-center gap-1"
-                        >
-                          {isExpanded ? (
-                            <>
-                              <span>Ocultar faturas futuras</span>
-                              <ChevronUp className="w-3 h-3" />
-                            </>
-                          ) : (
-                            <>
-                              <span>
-                                + {months.length - 1} fatura(s) futura(s) em aberto
-                              </span>
-                              <ChevronDown className="w-3 h-3" />
-                            </>
-                          )}
-                        </button>
-                      )}
+                    <div>
+                      <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Valor (R$)</label>
+                      <input type="number" step="0.01" value={transferAmount} onChange={e => setTransferAmount(e.target.value)} placeholder="0.00" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-xl focus:border-blue-500 outline-none text-center" required />
                     </div>
-                  )}
-                </div>
-              );
-            })
-          )}
+                    <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition mt-2">Realizar Transferência</button>
+                 </div>
+               </form>
+             )}
+
+             {/* Card Modal */}
+             {activeModal === 'card' && (
+               <form onSubmit={handleAddCard} className="p-6">
+                 <div className="flex justify-between items-center mb-6">
+                   <h3 className="text-lg font-bold text-white">Novo Cartão</h3>
+                   <button type="button" onClick={() => setActiveModal('none')} className="text-slate-500 hover:text-white transition"><X className="w-5 h-5"/></button>
+                 </div>
+                 <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Nome do Cartão</label>
+                      <input type="text" autoFocus value={cardName} onChange={e => setCardName(e.target.value)} placeholder="Ex: Nubank Ultravioleta" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none" required />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Limite (R$)</label>
+                      <input type="number" value={cardLimit} onChange={e => setCardLimit(e.target.value)} placeholder="5000.00" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono focus:border-blue-500 outline-none" required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Dia Vencimento</label>
+                        <input type="number" min="1" max="31" value={cardDue} onChange={e => setCardDue(e.target.value)} placeholder="5" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Dia Fechamento</label>
+                        <input type="number" min="1" max="31" value={cardClosing} onChange={e => setCardClosing(e.target.value)} placeholder="25" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none" required />
+                      </div>
+                    </div>
+                    <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition">Salvar Cartão</button>
+                 </div>
+               </form>
+             )}
+
+             {/* Purchase Modal */}
+             {activeModal === 'purchase' && (
+               <form onSubmit={handleAddPurchase} className="p-6">
+                 <div className="flex justify-between items-center mb-6">
+                   <h3 className="text-lg font-bold text-white">Lançar Compra</h3>
+                   <button type="button" onClick={() => setActiveModal('none')} className="text-slate-500 hover:text-white transition"><X className="w-5 h-5"/></button>
+                 </div>
+                 <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Cartão</label>
+                      <select value={cpCardId} onChange={e => setCpCardId(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none">
+                        {state.cards.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Descrição</label>
+                      <input type="text" value={cpDesc} onChange={e => setCpDesc(e.target.value)} placeholder="Ex: Ifood, Netflix" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none" required />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Valor Total (R$)</label>
+                      <input type="number" step="0.01" value={cpAmount} onChange={e => setCpAmount(e.target.value)} placeholder="0.00" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-xl focus:border-blue-500 outline-none text-center" required />
+                    </div>
+                    <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition mt-2">Registrar Compra</button>
+                 </div>
+               </form>
+             )}
+
+          </div>
         </div>
+      )}
 
-        {/* Add Card & Purchase Forms Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-slate-800">
-          {/* Add New Card */}
-          <form onSubmit={handleAddCard} className="space-y-3 text-xs">
-            <h4 className="font-semibold text-slate-200">Novo Cartão</h4>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text"
-                placeholder="Nome do cartão"
-                value={cardName}
-                onChange={(e) => setCardName(e.target.value)}
-                required
-                className="bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-white"
-              />
-              <input
-                type="number"
-                placeholder="Limite (R$)"
-                value={cardLimit}
-                onChange={(e) => setCardLimit(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-white font-mono"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="number"
-                placeholder="Dia Fechamento"
-                value={cardClosing}
-                onChange={(e) => setCardClosing(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-white"
-              />
-              <input
-                type="number"
-                placeholder="Dia Vencimento"
-                value={cardDue}
-                onChange={(e) => setCardDue(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-white"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-semibold transition"
-            >
-              Adicionar Cartão
-            </button>
-          </form>
-
-          {/* Add Card Purchase */}
-          <form onSubmit={handleAddCardPurchase} className="space-y-3 text-xs">
-            <h4 className="font-semibold text-slate-200">Lançar Compra no Cartão</h4>
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                value={cpCardId}
-                onChange={(e) => setCpCardId(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-white"
-              >
-                {state.cards.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                placeholder="Descrição da compra"
-                value={cpDesc}
-                onChange={(e) => setCpDesc(e.target.value)}
-                required
-                className="bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-white"
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Valor Total"
-                value={cpAmount}
-                onChange={(e) => setCpAmount(e.target.value)}
-                required
-                className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-white font-mono"
-              />
-              <input
-                type="number"
-                min="1"
-                max="60"
-                placeholder="Parcelas"
-                value={cpInstallments}
-                onChange={(e) => setCpInstallments(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-white font-mono"
-              />
-              <input
-                type="date"
-                value={cpDate}
-                onChange={(e) => setCpDate(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-white font-mono"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded font-semibold transition"
-            >
-              Lançar Compra
-            </button>
-          </form>
-        </div>
-      </div>
-
-      {/* Recurring Bills Section */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <div className="flex items-center gap-2 text-sm font-serif font-bold text-white">
-          <Clock className="w-4 h-4 text-blue-400" />
-          <span>Contas Fixas & Recorrentes</span>
-        </div>
-
-        <div className="space-y-2">
-          {state.recurringBills.map((b) => (
-            <div
-              key={b.id}
-              className="flex items-center justify-between p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-xs"
-            >
-              <div>
-                <span className="font-semibold text-slate-100 block">{b.name}</span>
-                <span className="text-[10px] text-slate-400">
-                  Todo dia {b.day} · {b.category} · {accountName(b.accountId, state.accounts)}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-mono font-semibold text-rose-400">{fmt(b.amount)}</span>
-                <button
-                  onClick={() => onToggleRecurringBill(b.id)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-semibold transition ${
-                    b.active
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-slate-800 text-slate-400'
-                  }`}
-                >
-                  {b.active ? 'Ativa' : 'Pausada'}
-                </button>
-                <button
-                  onClick={() => onRemoveRecurringBill(b.id)}
-                  className="p-1 rounded text-slate-500 hover:text-rose-400 transition"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Add Recurring Bill Form */}
-        <form onSubmit={handleAddRecurringBill} className="grid grid-cols-1 sm:grid-cols-5 gap-3 pt-2 text-xs">
-          <input
-            type="text"
-            placeholder="Nome (Ex.: Netflix, Aluguel)"
-            value={billName}
-            onChange={(e) => setBillName(e.target.value)}
-            required
-            className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white sm:col-span-2"
-          />
-          <input
-            type="number"
-            min="1"
-            max="31"
-            placeholder="Dia do mês"
-            value={billDay}
-            onChange={(e) => setBillDay(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white"
-          />
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="Valor (R$)"
-            value={billAmount}
-            onChange={(e) => setBillAmount(e.target.value)}
-            required
-            className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white font-mono"
-          />
-          <button
-            type="submit"
-            className="py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition"
-          >
-            Adicionar Conta
-          </button>
-        </form>
-      </div>
     </div>
   );
 };

@@ -18,13 +18,15 @@ import {
   FileText
 } from 'lucide-react';
 import { AppState, Transaction, TransactionType } from '../../types';
-import { fmt, formatDate, todayISO } from '../../utils/formatters';
+import { fmt, formatDate, todayISO, calculateAccountBalance } from '../../utils/formatters';
 import { TransactionModal } from '../TransactionModal';
 
 interface TransactionsViewProps {
   state: AppState;
   onAddTransaction: (tx: Omit<Transaction, 'id'>, installments?: number) => void;
   onDeleteTransaction: (id: string) => void;
+  onContributeToGoal?: (goalId: string, amount: number, accountId: string, date?: string) => void;
+  onContributeToInvestment?: (id: string, amount: number, accountId: string, date: string) => void;
 }
 
 const accountName = (id: string, accounts: any[]) => accounts.find((a) => a.id === id)?.name || 'Conta';
@@ -33,6 +35,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   state,
   onAddTransaction,
   onDeleteTransaction,
+  onContributeToGoal,
+  onContributeToInvestment
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState('');
@@ -58,7 +62,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
     return [...state.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [state.transactions]);
 
-  let runningBalance = state.transactions.reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0);
+  let runningBalance = state.accounts.reduce((sum, acc) => sum + calculateAccountBalance(acc.id, state), 0);
   
   // Actually we need to calculate historical balance for the main list or just skip running balance for cards
   const filtered = sorted.filter(t => {
@@ -139,7 +143,9 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         isOpen={showAddModal} 
         onClose={() => setShowAddModal(false)} 
         state={state} 
-        onAddTransaction={onAddTransaction} 
+        onAddTransaction={onAddTransaction}
+        onContributeToGoal={onContributeToGoal}
+        onContributeToInvestment={onContributeToInvestment}
       />
 
       {/* Transactions List */}

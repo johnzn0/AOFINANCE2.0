@@ -664,7 +664,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
       {/* Aplicativo Mobile & Atalho de Acesso Rápido (Android & iOS) */}
-      <div className="bg-gradient-to-br from-slate-900 via-blue-950/30 to-slate-900 border border-blue-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
+      <div className="bg-slate-900 bg-gradient-to-br from-slate-800/50 via-blue-950/20 to-transparent border border-blue-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-amber-500 flex items-center justify-center text-white font-bold shrink-0 shadow-md">

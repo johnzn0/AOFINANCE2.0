@@ -509,7 +509,7 @@ export function useFinance() {
 
       const newTx: Transaction = {
         id: uid(),
-        date: todayISO(),
+        date: date || todayISO(),
         type: 'expense',
         category: 'Cartão de crédito',
         description: `Fatura ${card.name} (${invoiceMonth})`,
@@ -575,14 +575,14 @@ export function useFinance() {
     }));
   }, []);
 
-  const contributeToGoal = useCallback((goalId: string, amount: number, accountId: string) => {
+  const contributeToGoal = useCallback((goalId: string, amount: number, accountId: string, date?: string) => {
     setState((prev) => {
       const goal = prev.goals.find((g) => g.id === goalId);
       if (!goal || amount <= 0) return prev;
 
       const newTx: Transaction = {
         id: uid(),
-        date: todayISO(),
+        date: date || todayISO(),
         type: 'expense',
         category: 'Poupança/Metas',
         description: `Aporte: ${goal.name}`,

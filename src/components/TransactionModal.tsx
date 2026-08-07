@@ -4,6 +4,8 @@ import { AppState, Transaction, TransactionType } from '../types';
 import { fmt, todayISO } from '../utils/formatters';
 
 interface TransactionModalProps {
+  onContributeToGoal?: (goalId: string, amount: number, accountId: string, date?: string) => void;
+  onContributeToInvestment?: (id: string, amount: number, accountId: string, date: string) => void;
   isOpen: boolean;
   onClose: () => void;
   state: AppState;
@@ -26,7 +28,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   isOpen,
   onClose,
   state,
-  onAddTransaction
+  onAddTransaction,
+  onContributeToGoal,
+  onContributeToInvestment
 }) => {
   const [type, setType] = useState<TransactionType | 'transfer' | 'investment'>('expense');
   const [amountStr, setAmountStr] = useState('');
@@ -43,6 +47,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   // Installments
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState('2');
+  const [destinationId, setDestinationId] = useState('');
 
   if (!isOpen) return null;
 
@@ -76,6 +81,21 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     const amt = parseFloat(amountStr);
     if (!amt || amt <= 0 || !description.trim()) return;
 
+    if (type === 'investment' && destinationId) {
+       // Is it a goal or investment?
+       const goal = state.goals.find(g => g.id === destinationId);
+       const inv = state.investments.find(i => i.id === destinationId);
+       if (goal && onContributeToGoal) {
+          onContributeToGoal(goal.id, amt, accountId, date);
+          onClose();
+          return;
+       } else if (inv && onContributeToInvestment) {
+          onContributeToInvestment(inv.id, amt, accountId, date);
+          onClose();
+          return;
+       }
+    }
+
     let finalType: TransactionType = 'expense';
     let finalCategory = category;
 
@@ -84,9 +104,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     if (type === 'transfer') {
       finalType = 'expense';
       finalCategory = 'Transferência';
-      // In a real advanced system, this would create two transactions or use the transfer table
-      // Here we just map it to an expense for simplicity, but the user requested real transfers.
-      // Assuming onAddTransaction handles it if we pass special metadata, or we just rely on standard fields.
     }
     if (type === 'investment') {
       finalType = 'expense';
@@ -229,9 +246,36 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     </select>
                   </div>
                 )}
+                
+                {type === 'investment' && (state.goals.length > 0 || state.investments.length > 0) && (
+                  <div className="col-span-2 mt-2">
+                    <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Destino do Investimento/Meta <span className="text-slate-600 font-normal">(Opcional)</span></label>
+                    <select
+                      value={destinationId}
+                      onChange={e => setDestinationId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">Nenhum (Apenas registrar despesa)</option>
+                      {state.goals.length > 0 && (
+                        <optgroup label="Metas e Objetivos">
+                          {state.goals.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {state.investments.length > 0 && (
+                        <optgroup label="Investimentos">
+                          {state.investments.map(i => (
+                            <option key={i.id} value={i.id}>{i.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </select>
+                  </div>
+                )}
               </div>
-            </div>
 
+            </div>
             {/* Tags (Notion style) */}
             <div>
               <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Tags</label>
