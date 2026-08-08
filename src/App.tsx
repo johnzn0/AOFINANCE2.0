@@ -230,9 +230,12 @@ export default function App() {
               <TransactionsView
                 state={finance.state}
                 onAddTransaction={finance.addTransaction}
+                onBatchImportTransactions={finance.addBatchTransactions}
                 onDeleteTransaction={finance.deleteTransaction}
                 onContributeToGoal={finance.contributeToGoal}
                 onContributeToInvestment={finance.addInvestmentContribution}
+                onResetData={finance.resetDataToSample}
+                onNavigateToAccounts={() => setCurrentPage('accounts')}
               />
             )}
 

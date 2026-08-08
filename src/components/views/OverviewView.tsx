@@ -1,3 +1,4 @@
+import { ZeroTransactionsOnboarding } from '../ZeroTransactionsOnboarding';
 import React, { useMemo } from 'react';
 import {
   TrendingUp,
@@ -152,6 +153,13 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   return (
     <div className="space-y-6 pb-24 animate-in fade-in duration-500">
+      {state.transactions.length === 0 && (
+        <ZeroTransactionsOnboarding
+          onOpenImportModal={() => onSelectPage('transactions')}
+          onOpenAddTransactionModal={() => onSelectPage('transactions')}
+          onNavigateToAccounts={() => onSelectPage('accounts')}
+        />
+      )}
       {/* Welcome & AI Banner */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
          <div>

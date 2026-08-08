@@ -313,6 +313,19 @@ export function useFinance() {
   }, []);
 
   // Actions
+
+  const addBatchTransactions = useCallback((txList: Omit<Transaction, 'id'>[]) => {
+    setState((prev) => {
+      const newItems: Transaction[] = txList.map((tx) => ({
+        ...tx,
+        id: uid(),
+      }));
+      return {
+        ...prev,
+        transactions: [...newItems, ...prev.transactions],
+      };
+    });
+  }, []);
   const addTransaction = useCallback((tx: Omit<Transaction, 'id'>, installments = 1) => {
     setState((prev) => {
       const newTxList = [...prev.transactions];
@@ -1063,6 +1076,7 @@ export function useFinance() {
     setCursor,
     shiftMonth,
     addTransaction,
+    addBatchTransactions,
     deleteTransaction,
     addAccount,
     removeAccount,

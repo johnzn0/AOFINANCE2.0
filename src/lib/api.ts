@@ -63,7 +63,7 @@ export async function registerWithApi(email: string, pass: string, name?: string
 
     const isAdmin = email.toLowerCase() === 'johnozzi21@gmail.com';
     const profileRole = isAdmin ? 'admin' : 'user';
-    const profileStatus = 'approved';
+    const profileStatus = isAdmin ? 'approved' : 'pending';
     const profilePlan = 'free';
 
     // Salva perfil no banco de dados
@@ -117,7 +117,7 @@ export async function loginWithApi(email: string, pass: string) {
     // Fallback if missing
     const isAdmin = email.toLowerCase() === 'johnozzi21@gmail.com';
     const role = profile?.role || (isAdmin ? 'admin' : 'user');
-    const status = profile?.status || 'approved';
+    const status = profile?.status || (isAdmin ? 'approved' : 'pending');
     const plan = profile?.plan || 'free';
     
     // Se não existia o profile, cria
@@ -265,7 +265,7 @@ export async function getCurrentUserProfile() {
   
   const isAdmin = email.toLowerCase() === 'johnozzi21@gmail.com';
   const role = profile?.role || (isAdmin ? 'admin' : 'user');
-  const status = profile?.status || 'approved';
+  const status = profile?.status || (isAdmin ? 'approved' : 'pending');
   const plan = profile?.plan || 'free';
 
   if (!profile) {
