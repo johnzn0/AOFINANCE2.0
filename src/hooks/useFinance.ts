@@ -84,59 +84,27 @@ export function useFinance() {
     };
 
     async function checkSession() {
-      if (window.location.hash.includes('error=')) {
-        const params = new URLSearchParams(window.location.hash.substring(1));
-        const errCode = params.get('error');
-        const errDesc = params.get('error_description');
-        if (errDesc || errCode) {
-          const cleanDesc = decodeURIComponent(errDesc || errCode || '').replace(/\+/g, ' ');
-          if (cleanDesc.includes('provider is not enabled') || cleanDesc.includes('Unsupported provider') || errCode === 'unsupported_provider') {
-            alert('Erro no login via Google (Provedor não ativado):\n\nO provedor Google precisa ser ativado no seu Supabase:\n1. Acesse https://supabase.com/dashboard\n2. Vá em Authentication > Providers > Google\n3. Ative o "Google Provider" e adicione seu Client ID & Secret.\n4. Em Authentication > URL Configuration, adicione a URL da sua aplicação nas Redirect URLs.');
-          } else {
-            alert('Erro no login via provedor: ' + cleanDesc);
-          }
-          window.location.hash = '';
-        }
-      }
-      // If running inside a popup opened by Google OAuth:
-      if (window.opener && window.opener !== window && (window.location.hash.includes('access_token') || window.location.search.includes('code'))) {
-        const supabase = getSupabase();
-        if (supabase) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            try {
-              window.opener.postMessage({ type: 'SUPABASE_AUTH_SUCCESS' }, '*');
-            } catch (e) {}
-            window.close();
-            return;
-          }
-        }
-      }
-
       try {
-        const profile = await getCurrentUserProfile();
-        if (profile && isMounted) {
-          setUserProfile(profile);
-          setCurrentUser({
-            uid: profile.uid,
-            email: profile.email,
-            displayName: profile.displayName,
-          });
-          setIsAuthLoading(false);
-          return;
+        if (window.location.hash.includes('error=')) {
+          const params = new URLSearchParams(window.location.hash.substring(1));
+          const errCode = params.get('error');
+          const errDesc = params.get('error_description');
+          if (errDesc || errCode) {
+            const cleanDesc = decodeURIComponent(errDesc || errCode || '').replace(/\+/g, ' ');
+            if (cleanDesc.includes('provider is not enabled') || cleanDesc.includes('Unsupported provider') || errCode === 'unsupported_provider') {
+              alert('Erro no login via Google (Provedor não ativado):\n\nO provedor Google precisa ser ativado no seu Supabase:\n1. Acesse https://supabase.com/dashboard\n2. Vá em Authentication > Providers > Google\n3. Ative o "Google Provider" e adicione seu Client ID & Secret.\n4. Em Authentication > URL Configuration, adicione a URL da sua aplicação nas Redirect URLs.');
+            } else {
+              alert('Erro no login via provedor: ' + cleanDesc);
+            }
+            window.location.hash = '';
+          }
         }
-      } catch (err) {
-        // No valid local token
-      }
-
-      const supabase = getSupabase();
-      if (supabase) {
-        const { data: subData } = supabase.auth.onAuthStateChange(async (event, session) => {
-          if (!isMounted) return;
-          if (session?.user) {
-            await syncUser(session.user);
-            // If this is a popup, notify parent and close
-            if (window.opener && window.opener !== window) {
+        // If running inside a popup opened by Google OAuth:
+        if (window.opener && window.opener !== window && (window.location.hash.includes('access_token') || window.location.search.includes('code'))) {
+          const supabase = getSupabase();
+          if (supabase) {
+            const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+            if (session?.user) {
               try {
                 window.opener.postMessage({ type: 'SUPABASE_AUTH_SUCCESS' }, '*');
               } catch (e) {}
@@ -144,19 +112,60 @@ export function useFinance() {
               return;
             }
           }
-          setIsAuthLoading(false);
-        });
-
-        // Check current session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          await syncUser(session.user);
-          setIsAuthLoading(false);
-          return;
         }
-      }
 
-      setIsAuthLoading(false);
+        try {
+          const profile = await getCurrentUserProfile();
+          if (profile && isMounted) {
+            setUserProfile(profile);
+            setCurrentUser({
+              uid: profile.uid,
+              email: profile.email,
+              displayName: profile.displayName,
+            });
+            setIsAuthLoading(false);
+            return;
+          }
+        } catch (err) {
+          // No valid local token
+        }
+
+        const supabase = getSupabase();
+        if (supabase) {
+          const { data: subData } = supabase.auth.onAuthStateChange(async (event, session) => {
+            try {
+              if (!isMounted) return;
+              if (session?.user) {
+                await syncUser(session.user);
+                // If this is a popup, notify parent and close
+                if (window.opener && window.opener !== window) {
+                  try {
+                    window.opener.postMessage({ type: 'SUPABASE_AUTH_SUCCESS' }, '*');
+                  } catch (e) {}
+                  window.close();
+                  return;
+                }
+              }
+              setIsAuthLoading(false);
+            } catch (e) {
+              console.error('onAuthStateChange handler error:', e);
+              if (isMounted) setIsAuthLoading(false);
+            }
+          });
+
+          // Check current session
+          const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+          if (session?.user) {
+            await syncUser(session.user);
+            setIsAuthLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Error in checkSession:', err);
+      } finally {
+        if (isMounted) setIsAuthLoading(false);
+      }
     }
 
     const handleMessage = async (event: MessageEvent) => {
@@ -166,7 +175,10 @@ export function useFinance() {
     };
 
     window.addEventListener('message', handleMessage);
-    checkSession();
+    checkSession().catch((e) => {
+      console.warn('Unhandled checkSession error:', e);
+      if (isMounted) setIsAuthLoading(false);
+    });
 
     return () => {
       isMounted = false;

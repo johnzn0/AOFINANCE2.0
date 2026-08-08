@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 
 import authRoutes from './server/routes/auth';
 import aiRoutes from './server/routes/ai';
+import logsRoutes from './server/routes/logs';
 
 const app = express();
 const PORT = 3000;
@@ -34,6 +35,7 @@ const apiLimiter = rateLimit({
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/ai', apiLimiter, aiRoutes);
+app.use('/api/logs', logsRoutes);
 
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   import('vite').then(({ createServer: createViteServer }) => {
@@ -45,7 +47,11 @@ if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
       app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server running on http://0.0.0.0:${PORT}`);
       });
+    }).catch((err) => {
+      console.error('Failed to create Vite server:', err);
     });
+  }).catch((err) => {
+    console.error('Failed to import Vite:', err);
   });
 } else if (!process.env.VERCEL) {
   const distPath = path.join(process.cwd(), 'dist');

@@ -1,3 +1,6 @@
+import { predictCategory } from './categoryClassifier';
+import { Transaction } from '../types';
+
 export interface ParsedStatementTransaction {
   id: string;
   date: string; // YYYY-MM-DD
@@ -8,11 +11,12 @@ export interface ParsedStatementTransaction {
   accountId: string;
   selected: boolean;
   fitid?: string;
+  isAutoCategorized?: boolean;
 }
 
 // Helper to infer category based on transaction description
 export function inferCategory(description: string, type: 'income' | 'expense'): string {
-  const desc = description.toLowerCase();
+  const desc = description.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
   if (type === 'income') {
     if (desc.includes('salario') || desc.includes('vencimento') || desc.includes('folha') || desc.includes('provento')) {
@@ -72,7 +76,7 @@ function parseOFXDate(rawDate: string): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function parseOFX(content: string, defaultAccountId = 'main'): ParsedStatementTransaction[] {
+export function parseOFX(content: string, defaultAccountId = 'main', userTransactions: Transaction[] = []): ParsedStatementTransaction[] {
   const transactions: ParsedStatementTransaction[] = [];
 
   // Match STMTTRN blocks
@@ -100,7 +104,9 @@ export function parseOFX(content: string, defaultAccountId = 'main'): ParsedStat
       const date = parseOFXDate(dtPostedMatch[1]);
       const description = (memoMatch ? memoMatch[1].trim() : nameMatch ? nameMatch[1].trim() : 'Lançamento OFX').replace(/&amp;/g, '&');
       const fitid = fitidMatch ? fitidMatch[1].trim() : undefined;
-      const category = inferCategory(description, type);
+      
+      const prediction = predictCategory(description, type, userTransactions);
+      const category = prediction.category;
 
       transactions.push({
         id: `ofx-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 4)}`,
@@ -112,6 +118,7 @@ export function parseOFX(content: string, defaultAccountId = 'main'): ParsedStat
         accountId: defaultAccountId,
         selected: true,
         fitid,
+        isAutoCategorized: true,
       });
     }
   });
@@ -163,7 +170,7 @@ function parseCSVAmount(rawAmt: string): number {
   return isNaN(val) ? 0 : val;
 }
 
-export function parseCSV(content: string, defaultAccountId = 'main'): ParsedStatementTransaction[] {
+export function parseCSV(content: string, defaultAccountId = 'main', userTransactions: Transaction[] = []): ParsedStatementTransaction[] {
   const transactions: ParsedStatementTransaction[] = [];
   const lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
 
@@ -213,7 +220,7 @@ export function parseCSV(content: string, defaultAccountId = 'main'): ParsedStat
     }
 
     const absAmount = Math.abs(numAmt);
-    const category = rawCat && rawCat.length > 2 ? rawCat : inferCategory(rawDesc, type);
+    const category = rawCat && rawCat.length > 2 ? rawCat : predictCategory(rawDesc, type, userTransactions).category;
 
     transactions.push({
       id: `csv-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 4)}`,
@@ -224,6 +231,7 @@ export function parseCSV(content: string, defaultAccountId = 'main'): ParsedStat
       category,
       accountId: defaultAccountId,
       selected: true,
+      isAutoCategorized: true,
     });
   }
 

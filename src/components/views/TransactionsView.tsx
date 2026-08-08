@@ -193,6 +193,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         accounts={state.accounts}
+        existingTransactions={state.transactions}
         onImportTransactions={handleBatchImport}
       />
 

@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { X, Check, Paperclip, UploadCloud, Plus } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Check, Paperclip, UploadCloud, Plus, Sparkles } from 'lucide-react';
 import { AppState, Transaction, TransactionType } from '../types';
 import { fmt, todayISO } from '../utils/formatters';
+import { predictCategory, CategoryPrediction } from '../utils/categoryClassifier';
 
 interface TransactionModalProps {
   onContributeToGoal?: (goalId: string, amount: number, accountId: string, date?: string) => void;
@@ -48,6 +49,27 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState('2');
   const [destinationId, setDestinationId] = useState('');
+
+  // Smart Category Prediction
+  const [suggestion, setSuggestion] = useState<CategoryPrediction | null>(null);
+
+  useEffect(() => {
+    if (description.trim().length >= 3 && type !== 'transfer' && type !== 'investment') {
+      const pred = predictCategory(
+        description,
+        type === 'income' ? 'income' : 'expense',
+        state.transactions,
+        state.settings.categories
+      );
+      if (pred.category && pred.confidence >= 0.35) {
+        setSuggestion(pred);
+      } else {
+        setSuggestion(null);
+      }
+    } else {
+      setSuggestion(null);
+    }
+  }, [description, type, state.transactions, state.settings.categories]);
 
   if (!isOpen) return null;
 
@@ -185,6 +207,24 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
                   required
                 />
+                {suggestion && suggestion.category !== category && (
+                  <div className="mt-2 flex items-center justify-between bg-emerald-950/40 border border-emerald-800/60 rounded-lg p-2 text-xs text-emerald-300 animate-fadeIn">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>
+                        Sugestão Inteligente: <strong className="text-white">{suggestion.category}</strong>
+                        {suggestion.source.includes('history') && ' (baseado no seu histórico)'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCategory(suggestion.category)}
+                      className="px-2 py-0.5 bg-emerald-500 text-slate-950 font-bold rounded text-[10px] hover:bg-emerald-400 transition-colors"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

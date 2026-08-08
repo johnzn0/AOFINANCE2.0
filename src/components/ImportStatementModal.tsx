@@ -16,12 +16,14 @@ import {
 } from 'lucide-react';
 import { Account, Transaction } from '../types';
 import { parseOFX, parseCSV, ParsedStatementTransaction } from '../utils/statementParser';
+import { predictCategory } from '../utils/categoryClassifier';
 import { fmt, formatDate } from '../utils/formatters';
 
 interface ImportStatementModalProps {
   isOpen: boolean;
   onClose: () => void;
   accounts: Account[];
+  existingTransactions?: Transaction[];
   onImportTransactions: (transactions: Omit<Transaction, 'id'>[]) => void;
 }
 
@@ -44,6 +46,7 @@ export const ImportStatementModal: React.FC<ImportStatementModalProps> = ({
   isOpen,
   onClose,
   accounts,
+  existingTransactions = [],
   onImportTransactions,
 }) => {
   const [file, setFile] = useState<File | null>(null);
@@ -79,14 +82,14 @@ export const ImportStatementModal: React.FC<ImportStatementModalProps> = ({
       try {
         let items: ParsedStatementTransaction[] = [];
         if (filename.endsWith('.ofx')) {
-          items = parseOFX(content, selectedAccountId);
+          items = parseOFX(content, selectedAccountId, existingTransactions);
         } else if (filename.endsWith('.csv') || filename.endsWith('.txt')) {
-          items = parseCSV(content, selectedAccountId);
+          items = parseCSV(content, selectedAccountId, existingTransactions);
         } else {
           // Try OFX then CSV fallback
-          items = parseOFX(content, selectedAccountId);
+          items = parseOFX(content, selectedAccountId, existingTransactions);
           if (items.length === 0) {
-            items = parseCSV(content, selectedAccountId);
+            items = parseCSV(content, selectedAccountId, existingTransactions);
           }
         }
 

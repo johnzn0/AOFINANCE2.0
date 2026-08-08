@@ -167,6 +167,8 @@ export async function requestForgotPasswordApi(email: string) {
     if (supabase) {
       await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
+      }).catch((e) => {
+        console.warn('Fallback resetPasswordForEmail failed:', e);
       });
     }
     return {
