@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Landmark, 
   ArrowRightLeft, 
@@ -99,7 +99,9 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
   };
 
   // Helper calculation
-  const totalBalance = state.accounts.reduce((sum, acc) => sum + calculateAccountBalance(acc.id, state), 0);
+  const totalBalance = useMemo(() => {
+    return state.accounts.reduce((sum, acc) => sum + calculateAccountBalance(acc.id, state), 0);
+  }, [state.accounts, state.transactions]);
 
   return (
     <div className="space-y-8 pb-24 relative">

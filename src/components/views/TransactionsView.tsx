@@ -46,10 +46,13 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   
   // Dashboard Metrics
   const currentMonth = new Date().toISOString().slice(0, 7);
-  const currentMonthTx = state.transactions.filter(t => t.date.startsWith(currentMonth));
   
-  const monthIncome = currentMonthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const monthExpense = currentMonthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const { monthIncome, monthExpense } = useMemo(() => {
+    const currentMonthTx = state.transactions.filter(t => t.date.startsWith(currentMonth));
+    const income = currentMonthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expense = currentMonthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    return { monthIncome: income, monthExpense: expense };
+  }, [state.transactions, currentMonth]);
   
   const allTags = useMemo(() => {
     const tags = new Set<string>();

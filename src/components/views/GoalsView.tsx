@@ -27,7 +27,9 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
   const [monthlyAmount, setMonthlyAmount] = useState('');
   const [accountId, setAccountId] = useState(state.accounts[0]?.id || '');
 
-  const totalSavedAll = round2(state.goals.reduce((s, g) => s + g.saved, 0));
+  const totalSavedAll = React.useMemo(() => {
+    return round2(state.goals.reduce((s, g) => s + g.saved, 0));
+  }, [state.goals]);
   const emergencyGoal = state.goals.find((g) => g.kind === 'reserva');
 
   const handleSubmit = (e: React.FormEvent) => {

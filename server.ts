@@ -2,6 +2,9 @@ import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import { validatePasswordRequirements } from './src/utils/passwordValidator';
 import { storeResetToken, verifyResetToken, markTokenAsUsed } from './src/lib/resetTokenStore';
@@ -9,7 +12,29 @@ import { storeResetToken, verifyResetToken, markTokenAsUsed } from './src/lib/re
 const app = express();
 const PORT = 3000;
 
+// Configuração de Segurança (Helmet, CORS e Limite de Payload)
+app.use(helmet({
+  contentSecurityPolicy: false, // Vite HMR works better without strict CSP locally
+}));
+app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Rate Limiters
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 10, // max 10 requests por IP
+  message: { error: 'Muitas tentativas, tente novamente mais tarde.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // max 100 requests por IP
+  message: { error: 'Limite de requisições excedido.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://juavorsfoscbtxsiudvv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6ImpXVCJ9.cYOO5gIrwgp5pbC1zJZYn-GQ3IKjDuxE-H8ky1f4iOs';
@@ -20,7 +45,7 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY || S
 // ==========================================
 // 1. ALTERAÇÃO DE SENHA (USUÁRIO AUTENTICADO)
 // ==========================================
-app.post('/api/auth/change-password', async (req, res) => {
+app.post('/api/auth/change-password', authLimiter, async (req, res) => {
   try {
     const { email, currentPassword, newPassword } = req.body;
 
@@ -89,7 +114,7 @@ app.post('/api/auth/change-password', async (req, res) => {
 // ==========================================
 // 2. RECUPERAÇÃO DE SENHA - SOLICITAR TOKEN ("Esqueci minha senha")
 // ==========================================
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
   const GENERIC_RESPONSE = {
     success: true,
     message: 'Se o e-mail estiver cadastrado, você receberá as instruções para redefinir sua senha.',
@@ -221,7 +246,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 // ==========================================
 // 3. VERIFICAR TOKEN DE REDEFINIÇÃO
 // ==========================================
-app.all('/api/auth/verify-reset-token', async (req, res) => {
+app.all('/api/auth/verify-reset-token', apiLimiter, async (req, res) => {
   try {
     const token = req.method === 'GET' ? req.query.token : req.body.token;
 
@@ -249,7 +274,7 @@ app.all('/api/auth/verify-reset-token', async (req, res) => {
 // ==========================================
 // 4. SALVAR NOVA SENHA (COM TOKEN VÁLIDO)
 // ==========================================
-app.post('/api/auth/reset-password', async (req, res) => {
+app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
@@ -316,7 +341,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 });
 
-app.post('/api/ai/assistant', async (req, res) => {
+app.post('/api/ai/assistant', apiLimiter, async (req, res) => {
 
   try {
     const { prompt, userSummary } = req.body;

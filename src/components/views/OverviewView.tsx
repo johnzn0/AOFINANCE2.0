@@ -37,36 +37,49 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   onOpenAssistant,
 }) => {
   const curKey = monthKey(cursor);
-  const monthTx = state.transactions.filter((t) => t.date.slice(0, 7) === curKey);
-
-  const income = monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expense = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const monthBalance = income - expense;
-
-  const totalBalanceInBank = state.transactions.reduce(
-    (s, t) => s + (t.type === 'income' ? t.amount : -t.amount),
-    0
-  );
-
-  // Top 3 Categories
-  const expensesByCat: Record<string, number> = {};
-  monthTx
-    .filter((t) => t.type === 'expense')
-    .forEach((t) => {
-      expensesByCat[t.category] = (expensesByCat[t.category] || 0) + t.amount;
-    });
+  
+  const { monthTx, income, expense, monthBalance, totalBalanceInBank, top3Cats, emergencyPct } = useMemo(() => {
+    const txs = state.transactions.filter((t) => t.date.slice(0, 7) === curKey);
     
-  const donutData = Object.entries(expensesByCat)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value);
+    let inc = 0;
+    let exp = 0;
+    const catExp: Record<string, number> = {};
+    
+    txs.forEach(t => {
+      if (t.type === 'income') {
+        inc += t.amount;
+      } else {
+        exp += t.amount;
+        catExp[t.category] = (catExp[t.category] || 0) + t.amount;
+      }
+    });
 
-  const top3Cats = donutData.slice(0, 3);
+    const bal = inc - exp;
 
-  // Emergency Fund Progress
-  const emergencyGoal = state.goals.find(g => g.kind === 'reserva');
-  const emergencyPct = emergencyGoal && emergencyGoal.target > 0 
-      ? Math.min(100, Math.round((emergencyGoal.saved / emergencyGoal.target) * 100)) 
-      : 0;
+    const totalBal = state.transactions.reduce(
+      (s, t) => s + (t.type === 'income' ? t.amount : -t.amount),
+      0
+    );
+
+    const donut = Object.entries(catExp)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    const emgGoal = state.goals.find(g => g.kind === 'reserva');
+    const emgPct = emgGoal && emgGoal.target > 0 
+        ? Math.min(100, Math.round((emgGoal.saved / emgGoal.target) * 100)) 
+        : 0;
+
+    return {
+      monthTx: txs,
+      income: inc,
+      expense: exp,
+      monthBalance: bal,
+      totalBalanceInBank: totalBal,
+      top3Cats: donut.slice(0, 3),
+      emergencyPct: emgPct
+    };
+  }, [state.transactions, state.goals, curKey]);
 
   // Upcoming Bills (Cards and Recurring)
   const now = new Date();
@@ -386,11 +399,11 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             </div>
             <p className="text-[11px] text-slate-400 mb-4 relative z-10">Progresso do seu colchão financeiro</p>
             
-            {emergencyGoal ? (
+            {emergencyPct !== undefined && state.goals.find(g => g.kind === 'reserva') ? (
               <div className="relative z-10">
                 <div className="flex justify-between items-end mb-2">
                   <span className="text-2xl font-mono font-bold text-emerald-400">{emergencyPct}%</span>
-                  <span className="text-xs text-slate-400 mb-1">{fmt(emergencyGoal.saved)}</span>
+                  <span className="text-xs text-slate-400 mb-1">{fmt(state.goals.find(g => g.kind === 'reserva')?.saved || 0)}</span>
                 </div>
                 <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
                   <div 

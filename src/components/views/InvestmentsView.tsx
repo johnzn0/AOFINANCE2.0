@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   TrendingUp,
   Plus,
@@ -40,8 +40,17 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({
   const [selectedInv, setSelectedInv] = useState<Investment | null>(null);
   const [modalType, setModalType] = useState<'details' | 'contribution' | 'updateValue' | 'withdraw' | null>(null);
 
-  const totalInvested = state.investments.reduce((s, i) => s + i.invested, 0);
-  const totalCurrent = state.investments.reduce((s, i) => s + i.current, 0);
+  const { totalInvested, totalCurrent } = useMemo(() => {
+    return state.investments.reduce(
+      (acc, i) => {
+        acc.totalInvested += i.invested;
+        acc.totalCurrent += i.current;
+        return acc;
+      },
+      { totalInvested: 0, totalCurrent: 0 }
+    );
+  }, [state.investments]);
+  
   const totalReturn = totalCurrent - totalInvested;
   const returnPct = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
 

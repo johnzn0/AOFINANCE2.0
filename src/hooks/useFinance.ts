@@ -226,15 +226,20 @@ export function useFinance() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      
+      // Debounce Cloud Save to avoid hitting rate limits and DB saturation
       if (currentUser && isCloudLoaded) {
-        saveStateToSupabase(state)
-          .then((res) => {
-            setIsCloudSynced(res.success);
-          })
-          .catch((err) => {
-            console.warn('Failed to save state to Supabase', err);
-            setIsCloudSynced(false);
-          });
+        const timeoutId = setTimeout(() => {
+          saveStateToSupabase(state)
+            .then((res) => {
+              setIsCloudSynced(res.success);
+            })
+            .catch((err) => {
+              console.warn('Failed to save state to Supabase', err);
+              setIsCloudSynced(false);
+            });
+        }, 2000); // Debounce de 2 segundos
+        return () => clearTimeout(timeoutId);
       }
     } catch (e) {
       console.error('Failed to save state to localStorage', e);
@@ -1021,17 +1026,25 @@ export function useFinance() {
   const logout = useCallback(async () => {
     try {
       removeStoredToken();
+      localStorage.removeItem(STORAGE_KEY); // Clear offline financial data
+      localStorage.removeItem('aofinance_offline_state');
+      localStorage.removeItem('aofinance_offline_profile');
       const supabase = getSupabase();
       if (supabase) {
         await supabase.auth.signOut().catch(() => {});
       }
       setUserProfile(null);
       setCurrentUser(null);
+      setState(initialData); // Reset to blank state
     } catch (err) {
       console.error('Logout error:', err);
       removeStoredToken();
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('aofinance_offline_state');
+      localStorage.removeItem('aofinance_offline_profile');
       setUserProfile(null);
       setCurrentUser(null);
+      setState(initialData);
     }
   }, []);
 
