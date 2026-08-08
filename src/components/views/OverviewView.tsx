@@ -19,12 +19,13 @@ import {
   Clock, PieChart as PieChartIcon
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { AppState, TabPage, Transaction, Goal } from '../../types';
+import { AppState, TabPage, Transaction, Goal, UserProfile } from '../../types';
 import { fmt, monthKey, getCatColor, formatDate, todayISO } from '../../utils/formatters';
 
 interface OverviewViewProps {
   state: AppState;
   cursor: Date;
+  userProfile?: UserProfile | null;
   onSelectPage: (page: TabPage) => void;
   onOpenGoalContrib: (goalId: string) => void;
   onOpenAssistant?: () => void;
@@ -33,6 +34,7 @@ interface OverviewViewProps {
 export const OverviewView: React.FC<OverviewViewProps> = ({
   state,
   cursor,
+  userProfile,
   onSelectPage,
   onOpenGoalContrib,
   onOpenAssistant,
@@ -164,7 +166,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
          <div>
            <h1 className="text-2xl font-serif font-bold text-white flex items-center gap-2">
-             Olá, {state.settings.profileName || 'usuário'} 👋
+             Olá, {state.settings.profileName || userProfile?.displayName || 'usuário'} 👋
            </h1>
            <p className="text-slate-400 text-sm mt-1">Aqui está o resumo financeiro de {cursor.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}.</p>
          </div>

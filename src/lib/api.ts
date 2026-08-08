@@ -268,12 +268,23 @@ export async function getCurrentUserProfile() {
   const status = profile?.status || (isAdmin ? 'approved' : 'pending');
   const plan = profile?.plan || 'free';
 
+  const metadataName = session.user.user_metadata?.full_name || session.user.user_metadata?.name;
+  let userDisplayName = profile?.display_name;
+  if (!userDisplayName || userDisplayName === 'João Silva' || userDisplayName === email.split('@')[0]) {
+    if (metadataName) {
+      userDisplayName = metadataName;
+    }
+  }
+  if (!userDisplayName) {
+    userDisplayName = email.split('@')[0];
+  }
+
   if (!profile) {
     try {
       await supabase.from('profiles').upsert({
         id: session.user.id,
         email: email,
-        display_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0],
+        display_name: userDisplayName,
         role: role,
         status: status,
         plan: plan,
@@ -281,12 +292,18 @@ export async function getCurrentUserProfile() {
     } catch (err) {
       console.warn('Error saving profile to database:', err);
     }
+  } else if (profile.display_name !== userDisplayName && userDisplayName) {
+    try {
+      await supabase.from('profiles').update({ display_name: userDisplayName }).eq('id', session.user.id);
+    } catch (err) {
+      console.warn('Error updating profile display name:', err);
+    }
   }
 
   return {
     uid: session.user.id,
     email: email,
-    displayName: profile?.display_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0],
+    displayName: userDisplayName,
     role: role as any,
     status: status as any,
     plan: plan as any,

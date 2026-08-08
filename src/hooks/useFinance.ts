@@ -187,20 +187,38 @@ export function useFinance() {
     loadStateFromSupabase()
       .then((cloudState) => {
         if (!isMounted) return;
+
+        const displayNameFromUser = userProfile?.displayName || currentUser?.displayName || '';
+
         if (cloudState) {
+          const savedProfileName = cloudState.settings?.profileName;
+          const finalProfileName =
+            savedProfileName && savedProfileName !== 'João Silva'
+              ? savedProfileName
+              : displayNameFromUser || savedProfileName || '';
+
           setState({
             ...initialData,
             ...cloudState,
             settings: {
               ...initialData.settings,
               ...(cloudState.settings || {}),
+              profileName: finalProfileName,
             },
           });
           setIsCloudSynced(true);
           setIsCloudLoaded(true);
         } else {
-          // If no cloud state yet for this user, upload initial state to cloud
-          saveStateToSupabase(state)
+          // New user: Start with clean initialData (not stale localStorage state!)
+          const cleanInitialState: AppState = {
+            ...initialData,
+            settings: {
+              ...initialData.settings,
+              profileName: displayNameFromUser,
+            },
+          };
+          setState(cleanInitialState);
+          saveStateToSupabase(cleanInitialState)
             .then((res) => {
               if (isMounted) {
                 setIsCloudSynced(res.success);
@@ -220,7 +238,7 @@ export function useFinance() {
     return () => {
       isMounted = false;
     };
-  }, [currentUser?.uid]);
+  }, [currentUser?.uid, userProfile?.displayName]);
 
   // Save to localStorage & Supabase on state change
   useEffect(() => {
@@ -815,7 +833,17 @@ export function useFinance() {
         },
       },
     }));
-  }, []);
+
+    if (newSettings.profileName && currentUser) {
+      const trimmedName = newSettings.profileName.trim();
+      setUserProfile((prev) => (prev ? { ...prev, displayName: trimmedName } : null));
+      setCurrentUser((prev) => (prev ? { ...prev, displayName: trimmedName } : null));
+      const supabase = getSupabase();
+      if (supabase) {
+        Promise.resolve(supabase.from('profiles').update({ display_name: trimmedName }).eq('id', currentUser.uid)).catch(() => {});
+      }
+    }
+  }, [currentUser]);
 
   const resetDataToSample = useCallback(() => {
     const freshData = JSON.parse(JSON.stringify(sampleData));
@@ -979,6 +1007,16 @@ export function useFinance() {
           email: res.profile.email,
           displayName: res.profile.displayName,
         });
+
+        const cleanState: AppState = {
+          ...initialData,
+          settings: {
+            ...initialData.settings,
+            profileName: res.profile.displayName || name,
+          },
+        };
+        setState(cleanState);
+        saveStateToSupabase(cleanState).catch(() => {});
       }
     } catch (err: any) {
       console.error('Email register error:', err);

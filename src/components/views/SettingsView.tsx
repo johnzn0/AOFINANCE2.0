@@ -47,7 +47,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabId>('profile');
 
-  const [profileName, setProfileName] = useState(state.settings.profileName || '');
+  const [profileName, setProfileName] = useState(state.settings.profileName || userProfile?.displayName || '');
+
+  React.useEffect(() => {
+    setProfileName(state.settings.profileName || userProfile?.displayName || '');
+  }, [state.settings.profileName, userProfile?.displayName]);
   const [newCat, setNewCat] = useState('');
   const [newInvType, setNewInvType] = useState('');
   const [importStatus, setImportStatus] = useState<string | null>(null);

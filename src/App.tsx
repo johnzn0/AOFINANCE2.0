@@ -220,6 +220,7 @@ export default function App() {
               <OverviewView
                 state={finance.state}
                 cursor={finance.cursor}
+                userProfile={finance.userProfile}
                 onSelectPage={setCurrentPage}
                 onOpenGoalContrib={(id) => setContribGoalId(id)}
                 onOpenAssistant={() => setIsAssistantOpen(true)}
