@@ -10,6 +10,8 @@ import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { GoalContribModal } from './components/GoalContribModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { AIAssistantModal } from './components/AIAssistantModal';
+import { TransactionModal } from './components/TransactionModal';
+import { Toast, ToastMessage } from './components/common/Toast';
 import { saveStateToOfflineCache, saveProfileToOfflineCache } from './mobile/offlineStore';
 
 
@@ -56,6 +58,8 @@ export default function App() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isQuickTxOpen, setIsQuickTxOpen] = useState(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   // Clear reset token URL param
   const handleClearResetToken = () => {
@@ -170,6 +174,7 @@ export default function App() {
 
   return (
     <div className={`${themeMode === 'light' ? 'light-theme bg-slate-50 text-slate-900' : 'dark-theme bg-slate-950 text-slate-100'} ${hideValues ? 'hide-values' : ''} min-h-screen flex flex-col font-sans selection:bg-blue-500 selection:text-white transition-colors duration-200`}>
+      <Toast toast={toast} onClose={() => setToast(null)} />
       <PWAInstallBanner
         forceShowModal={isInstallModalOpen}
         onCloseModal={() => setIsInstallModalOpen(false)}
@@ -185,6 +190,7 @@ export default function App() {
         userProfile={finance.userProfile}
         onOpenAssistant={() => setIsAssistantOpen(true)}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        onOpenQuickTx={() => setIsQuickTxOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -202,6 +208,7 @@ export default function App() {
           onToggleTheme={() => finance.updateSettings({ themeMode: themeMode === 'light' ? 'dark' : 'light' })}
           onToggleHideValues={() => finance.updateSettings({ hideValues: !hideValues })}
           onOpenInstallModal={() => setIsInstallModalOpen(true)}
+          onOpenQuickTx={() => setIsQuickTxOpen(true)}
         />
 
         <AnimatePresence mode="wait">
@@ -309,6 +316,41 @@ export default function App() {
         onSelectPage={setCurrentPage}
         userProfile={finance.userProfile}
         onOpenAssistant={() => setIsAssistantOpen(true)}
+        onOpenQuickTx={() => setIsQuickTxOpen(true)}
+      />
+
+      {/* Global Quick Add Transaction Drawer */}
+      <TransactionModal
+        isOpen={isQuickTxOpen}
+        onClose={() => setIsQuickTxOpen(false)}
+        state={finance.state}
+        onAddTransaction={(tx, inst) => {
+          finance.addTransaction(tx, inst);
+          setToast({
+            id: String(Date.now()),
+            type: 'success',
+            title: 'Transação Registrada',
+            message: `${tx.description} - R$ ${tx.amount.toFixed(2)}`,
+          });
+        }}
+        onContributeToGoal={(goalId, amt, accId, date) => {
+          finance.contributeToGoal(goalId, amt, accId, date);
+          setToast({
+            id: String(Date.now()),
+            type: 'success',
+            title: 'Aporte em Meta Registrado',
+            message: `Aporte de R$ ${amt.toFixed(2)} realizado`,
+          });
+        }}
+        onContributeToInvestment={(invId, amt, accId, date) => {
+          finance.addInvestmentContribution(invId, amt, accId, date);
+          setToast({
+            id: String(Date.now()),
+            type: 'success',
+            title: 'Investimento Atualizado',
+            message: `Aporte de R$ ${amt.toFixed(2)} realizado`,
+          });
+        }}
       />
 
       {/* Modals */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield, Sun, Moon, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield, Sun, Moon, Eye, EyeOff, Plus } from 'lucide-react';
 import { TabPage, AppState, UserProfile } from '../types';
 import { monthLabel } from '../utils/formatters';
 
@@ -16,6 +16,7 @@ interface HeaderProps {
   onToggleTheme?: () => void;
   onToggleHideValues?: () => void;
   onOpenInstallModal?: () => void;
+  onOpenQuickTx?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTheme,
   onToggleHideValues,
   onOpenInstallModal,
+  onOpenQuickTx,
 }) => {
   const titles: Record<TabPage, { title: string; sub: string }> = {
     overview: { title: 'Visão Geral', sub: 'Seu resumo financeiro e alertas inteligentes' },
@@ -60,7 +62,17 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Mobile period & profile control */}
-      <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+      <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+        {onOpenQuickTx && (
+          <button
+            onClick={onOpenQuickTx}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold shadow-md shadow-blue-600/20 active:scale-95 transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Nova Transação</span>
+          </button>
+        )}
+
         {userProfile?.role === 'admin' && (
           <button
             onClick={() => onSelectPage('admin')}

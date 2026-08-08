@@ -34,8 +34,9 @@ class LoggerService {
       });
 
       window.addEventListener('unhandledrejection', (event) => {
+        event.preventDefault();
         this.error('Unhandled Promise Rejection', event.reason, {
-          reason: String(event.reason),
+          reason: String(event.reason?.message || event.reason),
         });
       });
     }

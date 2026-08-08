@@ -16,6 +16,7 @@ import {
   Shield,
   Download,
   Sparkles,
+  Plus,
 } from 'lucide-react';
 import { TabPage, AppState, UserProfile } from '../types';
 import { monthLabel } from '../utils/formatters';
@@ -29,6 +30,7 @@ interface SidebarProps {
   userProfile?: UserProfile | null;
   onOpenAssistant?: () => void;
   onOpenInstallModal?: () => void;
+  onOpenQuickTx?: () => void;
 }
 
 export const NAV_ITEMS: { id: TabPage; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -53,6 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userProfile,
   onOpenAssistant,
   onOpenInstallModal,
+  onOpenQuickTx,
 }) => {
   const profileName = userProfile?.displayName || state.settings.profileName || 'Configurar Perfil';
   const initial = profileName.trim().charAt(0).toUpperCase() || '?';
@@ -66,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 p-5 shrink-0 min-h-screen text-slate-100 sticky top-0 h-screen">
       {/* Brand logo */}
-      <div className="flex items-center gap-3 mb-6 cursor-pointer" onClick={() => onSelectPage('overview')}>
+      <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={() => onSelectPage('overview')}>
         <div className="w-10 h-10 rounded-full border-2 border-blue-500 bg-slate-950 flex items-center justify-center text-blue-400 font-serif font-bold text-lg shadow-md shadow-blue-500/10">AO</div>
         <div>
           <h1 className="font-serif font-semibold text-xl tracking-tight leading-none text-white">
@@ -77,6 +80,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Quick Add Button */}
+      {onOpenQuickTx && (
+        <button
+          onClick={onOpenQuickTx}
+          className="mb-4 w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Nova Transação</span>
+        </button>
+      )}
 
       {/* Navigation tabs */}
       <nav className="flex-1 flex flex-col gap-1 overflow-y-auto pr-1">

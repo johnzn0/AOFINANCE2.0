@@ -15,6 +15,7 @@ import {
   X,
   ChevronRight,
   Sparkles,
+  Plus,
 } from 'lucide-react';
 import { TabPage, UserProfile } from '../types';
 import { triggerHapticFeedback } from '../mobile/mobilePlatform';
@@ -24,6 +25,7 @@ interface MobileNavProps {
   onSelectPage: (page: TabPage) => void;
   userProfile?: UserProfile | null;
   onOpenAssistant?: () => void;
+  onOpenQuickTx?: () => void;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({
@@ -31,6 +33,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   onSelectPage,
   userProfile,
   onOpenAssistant,
+  onOpenQuickTx,
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const isAdmin = userProfile?.role === 'admin';
@@ -41,9 +44,12 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     setIsMoreOpen(false);
   };
 
-  const primaryTabs: { id: TabPage; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  const primaryTabsLeft: { id: TabPage; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'overview', label: 'Início', icon: LayoutDashboard },
     { id: 'transactions', label: 'Lançamentos', icon: Receipt },
+  ];
+
+  const primaryTabsRight: { id: TabPage; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'accounts', label: 'Contas', icon: CreditCard },
     { id: 'investments', label: 'Investir', icon: TrendingUp },
   ];
@@ -151,8 +157,45 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       )}
 
       {/* Fixed Native Bottom Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-md border-t border-slate-800/90 z-40 px-2 py-1.5 pb-safe flex items-center justify-around shadow-2xl">
-        {primaryTabs.map((tab) => {
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-md border-t border-slate-800/90 z-40 px-1 py-1.5 pb-safe flex items-center justify-around shadow-2xl">
+        {primaryTabsLeft.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = currentPage === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleSelect(tab.id)}
+              className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition text-[10px] font-medium active:scale-95 ${
+                isActive
+                  ? 'text-blue-400 font-bold bg-blue-500/10'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'text-blue-400 scale-105' : 'text-slate-400'}`} />
+              <span className="truncate max-w-[60px]">{tab.label}</span>
+            </button>
+          );
+        })}
+
+        {/* Central Quick Add FAB */}
+        {onOpenQuickTx && (
+          <div className="flex flex-col items-center justify-center -mt-5 px-1">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHapticFeedback('medium');
+                onOpenQuickTx();
+              }}
+              className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 border-2 border-slate-950 transition active:scale-90"
+              title="Nova Transação"
+            >
+              <Plus className="w-6 h-6 stroke-[2.5]" />
+            </button>
+          </div>
+        )}
+
+        {primaryTabsRight.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentPage === tab.id;
           return (
