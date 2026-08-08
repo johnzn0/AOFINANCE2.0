@@ -179,11 +179,19 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({
         </h2>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+          className="hidden md:flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" /> Novo Ativo
         </button>
       </div>
+
+      {/* Mobile FAB */}
+      <button 
+        onClick={() => setShowAddModal(true)}
+        className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-600/30 z-40 transition active:scale-95"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
 
       {state.investments.length === 0 ? (
         <div className="bg-slate-900/50 border border-slate-800 border-dashed rounded-xl p-8 text-center">

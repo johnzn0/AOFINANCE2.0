@@ -272,7 +272,7 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
                     </div>
                     <div>
                       <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Valor (R$)</label>
-                      <input type="number" step="0.01" value={transferAmount} onChange={e => setTransferAmount(e.target.value)} placeholder="0.00" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-xl focus:border-blue-500 outline-none text-center" required />
+                      <input type="number" step="0.01" min="0" value={transferAmount} onChange={e => setTransferAmount(e.target.value)} placeholder="0.00" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-xl focus:border-blue-500 outline-none text-center" required />
                     </div>
                     <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition mt-2">Realizar Transferência</button>
                  </div>
@@ -330,7 +330,7 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
                     </div>
                     <div>
                       <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Valor Total (R$)</label>
-                      <input type="number" step="0.01" value={cpAmount} onChange={e => setCpAmount(e.target.value)} placeholder="0.00" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-xl focus:border-blue-500 outline-none text-center" required />
+                      <input type="number" step="0.01" min="0" value={cpAmount} onChange={e => setCpAmount(e.target.value)} placeholder="0.00" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-xl focus:border-blue-500 outline-none text-center" required />
                     </div>
                     <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition mt-2">Registrar Compra</button>
                  </div>

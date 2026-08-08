@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield, Sun, Moon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Database, LogOut, Shield, Sun, Moon, Eye, EyeOff } from 'lucide-react';
 import { TabPage, AppState, UserProfile } from '../types';
 import { monthLabel } from '../utils/formatters';
 
@@ -14,6 +14,7 @@ interface HeaderProps {
   onOpenAssistant?: () => void;
   isCloudSynced?: boolean;
   onToggleTheme?: () => void;
+  onToggleHideValues?: () => void;
   onOpenInstallModal?: () => void;
 }
 
@@ -28,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAssistant,
   isCloudSynced = true,
   onToggleTheme,
+  onToggleHideValues,
   onOpenInstallModal,
 }) => {
   const titles: Record<TabPage, { title: string; sub: string }> = {
@@ -77,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs font-mono">
+        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs">
           <button
             onClick={() => onShiftMonth(-1)}
             className="p-1 rounded text-slate-400 hover:text-white transition"
@@ -95,6 +97,20 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
 
+        {onToggleHideValues && (
+          <button
+            type="button"
+            onClick={onToggleHideValues}
+            className="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white rounded-lg transition flex items-center justify-center"
+            title={state.settings.hideValues ? 'Mostrar Valores' : 'Ocultar Valores'}
+          >
+            {state.settings.hideValues ? (
+              <EyeOff className="w-4 h-4 text-slate-400" />
+            ) : (
+              <Eye className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+        )}
         {onToggleTheme && (
           <button
             type="button"

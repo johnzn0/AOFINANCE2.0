@@ -1,6 +1,13 @@
 import { AppState, Transaction, Account } from '../types';
 
+let hideValues = false;
+
+export const setHideValues = (hide: boolean) => {
+  hideValues = hide;
+};
+
 export const fmt = (n: number): string => {
+  if (hideValues) return '••••';
   const isNeg = n < 0;
   const absVal = Math.abs(n);
   const formatted = absVal.toLocaleString('pt-BR', {

@@ -132,6 +132,7 @@ export interface UserSettings {
   investmentTypes: string[];
   theme: ThemeConfig;
   themeMode?: 'light' | 'dark';
+  hideValues?: boolean;
   hasCompletedSetup?: boolean;
 }
 

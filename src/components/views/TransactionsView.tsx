@@ -135,12 +135,20 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         
         <button 
           onClick={() => setShowAddModal(true)}
-          className="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md shadow-blue-600/20"
+          className="hidden md:flex w-full md:w-auto items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md shadow-blue-600/20"
         >
           <Plus className="w-4 h-4" />
           Nova Transação
         </button>
       </div>
+      
+      {/* Mobile FAB */}
+      <button 
+        onClick={() => setShowAddModal(true)}
+        className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-600/30 z-40 transition active:scale-95"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
 
       <TransactionModal 
         isOpen={showAddModal} 

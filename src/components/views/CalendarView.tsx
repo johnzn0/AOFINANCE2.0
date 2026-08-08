@@ -128,7 +128,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ state }) => {
               >
                 <div className="flex justify-between items-center w-full">
                   <span
-                    className={`font-mono text-xs font-semibold ${
+                    className={`text-xs font-semibold ${
                       isToday ? 'text-emerald-400' : 'text-slate-300'
                     }`}
                   >
@@ -142,12 +142,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ state }) => {
                   )}
                 </div>
 
-                <div className="space-y-0.5 text-[9px] font-mono mt-1">
+                <div className="space-y-0.5 text-[9px] mt-1 font-medium">
                   {info.income > 0 && (
-                    <div className="text-emerald-400 truncate">+{fmt(info.income)}</div>
+                    <div className="text-emerald-400 truncate font-mono">+{fmt(info.income)}</div>
                   )}
                   {info.expense > 0 && (
-                    <div className="text-rose-400 truncate">-{fmt(info.expense)}</div>
+                    <div className="text-rose-400 truncate font-mono">-{fmt(info.expense)}</div>
                   )}
                 </div>
               </button>
@@ -163,8 +163,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ state }) => {
             <span>
               Lançamentos do Dia {selectedDay} de {monthLabel(calCursor)}
             </span>
-            <span className="text-xs font-mono text-slate-400 font-normal">
-              Receitas: <span className="text-emerald-400 font-semibold">{fmt(selectedDayDetails.income)}</span> · Despesas: <span className="text-rose-400 font-semibold">{fmt(selectedDayDetails.expense)}</span>
+            <span className="text-xs text-slate-400 font-normal">
+              Receitas: <span className="text-emerald-400 font-semibold font-mono">{fmt(selectedDayDetails.income)}</span> · Despesas: <span className="text-rose-400 font-semibold font-mono">{fmt(selectedDayDetails.expense)}</span>
             </span>
           </h3>
 

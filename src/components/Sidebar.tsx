@@ -110,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-blue-400 shrink-0" />
             <span className="font-medium text-slate-300">Assistente IA</span>
           </div>
-          <span className="text-[9px] text-slate-500 font-mono px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">
+          <span className="text-[9px] text-slate-500 font-semibold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">
             Voz
           </span>
         </button>
@@ -129,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="font-mono text-xs font-medium text-slate-200 capitalize">
+          <span className="text-xs font-medium text-slate-200 capitalize">
             {monthLabel(cursor)}
           </span>
           <button

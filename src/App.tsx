@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFinance } from './hooks/useFinance';
+import { setHideValues } from './utils/formatters';
 import { TabPage } from './types';
 import { Sidebar } from './components/Sidebar';
 import { MobileNav } from './components/MobileNav';
@@ -157,9 +158,11 @@ export default function App() {
   };
 
   const themeMode = finance.state.settings.themeMode || 'light';
+  const hideValues = finance.state.settings.hideValues || false;
+  setHideValues(hideValues);
 
   return (
-    <div className={`${themeMode === 'light' ? 'light-theme bg-slate-50 text-slate-900' : 'dark-theme bg-slate-950 text-slate-100'} min-h-screen flex flex-col font-sans selection:bg-blue-500 selection:text-white transition-colors duration-200`}>
+    <div className={`${themeMode === 'light' ? 'light-theme bg-slate-50 text-slate-900' : 'dark-theme bg-slate-950 text-slate-100'} ${hideValues ? 'hide-values' : ''} min-h-screen flex flex-col font-sans selection:bg-blue-500 selection:text-white transition-colors duration-200`}>
       <PWAInstallBanner
         forceShowModal={isInstallModalOpen}
         onCloseModal={() => setIsInstallModalOpen(false)}
@@ -190,6 +193,7 @@ export default function App() {
           onOpenAssistant={() => setIsAssistantOpen(true)}
           isCloudSynced={finance.isCloudSynced}
           onToggleTheme={() => finance.updateSettings({ themeMode: themeMode === 'light' ? 'dark' : 'light' })}
+          onToggleHideValues={() => finance.updateSettings({ hideValues: !hideValues })}
           onOpenInstallModal={() => setIsInstallModalOpen(true)}
         />
 
