@@ -12,20 +12,30 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { AIAssistantModal } from './components/AIAssistantModal';
 import { saveStateToOfflineCache, saveProfileToOfflineCache } from './mobile/offlineStore';
 
+
+import { Suspense, lazy } from 'react';
+
+const LoginView = lazy(() => import('./components/views/LoginView').then(m => ({ default: m.LoginView })));
+const AdminView = lazy(() => import('./components/views/AdminView').then(m => ({ default: m.AdminView })));
+const OverviewView = lazy(() => import('./components/views/OverviewView').then(m => ({ default: m.OverviewView })));
+const TransactionsView = lazy(() => import('./components/views/TransactionsView').then(m => ({ default: m.TransactionsView })));
+const AccountsCardsView = lazy(() => import('./components/views/AccountsCardsView').then(m => ({ default: m.AccountsCardsView })));
+const InvestmentsView = lazy(() => import('./components/views/InvestmentsView').then(m => ({ default: m.InvestmentsView })));
+const GoalsView = lazy(() => import('./components/views/GoalsView').then(m => ({ default: m.GoalsView })));
+const AnnualView = lazy(() => import('./components/views/AnnualView').then(m => ({ default: m.AnnualView })));
+const ReportsView = lazy(() => import('./components/views/ReportsView').then(m => ({ default: m.ReportsView })));
+const CalendarView = lazy(() => import('./components/views/CalendarView').then(m => ({ default: m.CalendarView })));
+const SimulatorView = lazy(() => import('./components/views/SimulatorView').then(m => ({ default: m.SimulatorView })));
+const SettingsView = lazy(() => import('./components/views/SettingsView').then(m => ({ default: m.SettingsView })));
+const ResetPasswordView = lazy(() => import('./components/views/ResetPasswordView').then(m => ({ default: m.ResetPasswordView })));
+
+const FallbackLoader = () => (
+  <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
+
 // Views
-import { LoginView } from './components/views/LoginView';
-import { AdminView } from './components/views/AdminView';
-import { OverviewView } from './components/views/OverviewView';
-import { TransactionsView } from './components/views/TransactionsView';
-import { AccountsCardsView } from './components/views/AccountsCardsView';
-import { InvestmentsView } from './components/views/InvestmentsView';
-import { GoalsView } from './components/views/GoalsView';
-import { AnnualView } from './components/views/AnnualView';
-import { ReportsView } from './components/views/ReportsView';
-import { CalendarView } from './components/views/CalendarView';
-import { SimulatorView } from './components/views/SimulatorView';
-import { SettingsView } from './components/views/SettingsView';
-import { ResetPasswordView } from './components/views/ResetPasswordView';
 
 export default function App() {
   const finance = useFinance();
@@ -59,10 +69,7 @@ export default function App() {
   // If URL has a reset token, render ResetPasswordView
   if (urlResetToken) {
     return (
-      <ResetPasswordView
-        token={urlResetToken}
-        onGoToLogin={handleClearResetToken}
-      />
+      <Suspense fallback={<FallbackLoader />}><ResetPasswordView token={urlResetToken} onGoToLogin={handleClearResetToken} /></Suspense>
     );
   }
 
@@ -94,14 +101,14 @@ export default function App() {
   // Auth Guard: Show Login / Status Screen if not logged in or not approved
   if (!finance.currentUser || !finance.userProfile || finance.userProfile.status !== 'approved') {
     return (
-      <LoginView
+      <Suspense fallback={<FallbackLoader />}><LoginView
         onLoginWithGoogle={finance.loginWithGoogle}
         onLoginWithEmail={finance.loginWithEmail}
         onRegisterWithEmail={finance.registerWithEmail}
         onResetPassword={finance.resetPassword}
         onLogout={finance.logout}
         userProfile={finance.userProfile}
-      />
+      /></Suspense>
     );
   }
 
@@ -268,16 +275,16 @@ export default function App() {
               />
             )}
 
-            {currentPage === 'annual' && <AnnualView state={finance.state} />}
+            {currentPage === 'annual' && <Suspense fallback={<FallbackLoader />}><AnnualView state={finance.state} /></Suspense>}
 
-            {currentPage === 'reports' && <ReportsView state={finance.state} />}
+            {currentPage === 'reports' && <Suspense fallback={<FallbackLoader />}><ReportsView state={finance.state} /></Suspense>}
 
-            {currentPage === 'calendar' && <CalendarView state={finance.state} />}
+            {currentPage === 'calendar' && <Suspense fallback={<FallbackLoader />}><CalendarView state={finance.state} /></Suspense>}
 
-            {currentPage === 'simulator' && <SimulatorView />}
+            {currentPage === 'simulator' && <Suspense fallback={<FallbackLoader />}><SimulatorView /></Suspense>}
 
             {currentPage === 'settings' && (
-              <SettingsView
+              <Suspense fallback={<FallbackLoader />}><SettingsView
                 state={finance.state}
                 userProfile={finance.userProfile}
                 onUpdateSettings={finance.updateSettings}
@@ -285,7 +292,7 @@ export default function App() {
                 onClearData={finance.clearAllData}
                 onImportJSON={finance.importStateJSON}
                 onOpenOnboarding={() => setIsOnboardingOpen(true)}
-              />
+              /></Suspense>
             )}
           </motion.div>
         </AnimatePresence>

@@ -89,7 +89,26 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    
+    
+    test: {
+      environment: 'jsdom',
+      setupFiles: ['./vitest.setup.ts'],
+      globals: true,
+    },
+    build: {
+
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            recharts: ['recharts'],
+            vendor: ['react', 'react-dom', 'motion'],
+          }
+        }
+      }
+    },
     server: {
+
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',

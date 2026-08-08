@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BarChart3, TrendingUp, DollarSign, Award, Tag as TagIcon } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -16,68 +16,48 @@ interface ReportsViewProps {
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ state }) => {
-  const allTx = state.transactions;
+  const { 
+    allTx, totalIncome, totalExpense, netProfit, 
+    highestExpense, highestIncome, 
+    monthsData, catTotalSum, catEntries, tagEntries 
+  } = useMemo(() => {
+    const allTx = state.transactions;
+    const totalIncome = allTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const totalExpense = allTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const netProfit = totalIncome - totalExpense;
 
-  const totalIncome = allTx
-    .filter((t) => t.type === 'income')
-    .reduce((s, t) => s + t.amount, 0);
-  const totalExpense = allTx
-    .filter((t) => t.type === 'expense')
-    .reduce((s, t) => s + t.amount, 0);
-  const netProfit = totalIncome - totalExpense;
+    const highestExpense = [...allTx].filter(t => t.type === 'expense').sort((a, b) => b.amount - a.amount)[0];
+    const highestIncome = [...allTx].filter(t => t.type === 'income').sort((a, b) => b.amount - a.amount)[0];
 
-  const highestExpense = [...allTx]
-    .filter((t) => t.type === 'expense')
-    .sort((a, b) => b.amount - a.amount)[0];
+    const now = new Date();
+    const monthsData = [];
+    const currentInvTotal = state.investments.reduce((s, i) => s + i.current, 0);
 
-  const highestIncome = [...allTx]
-    .filter((t) => t.type === 'income')
-    .sort((a, b) => b.amount - a.amount)[0];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+      const bankBalanceUpTo = allTx.filter(t => t.date <= endOfMonth).reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0);
+      const label = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      monthsData.push({ label, Patrimonio: bankBalanceUpTo + currentInvTotal });
+    }
 
-  // Last 6 Months Net Worth Evolution Data
-  const now = new Date();
-  const monthsData = [];
-  const currentInvTotal = state.investments.reduce((s, i) => s + i.current, 0);
-
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0)
-      .toISOString()
-      .slice(0, 10);
-
-    const bankBalanceUpTo = allTx
-      .filter((t) => t.date <= endOfMonth)
-      .reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0);
-
-    const label = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-    monthsData.push({
-      label,
-      Patrimonio: bankBalanceUpTo + currentInvTotal,
-    });
-  }
-
-  // Expenses by Category
-  const catTotals: Record<string, number> = {};
-  allTx
-    .filter((t) => t.type === 'expense')
-    .forEach((t) => {
+    const catTotals: Record<string, number> = {};
+    allTx.filter(t => t.type === 'expense').forEach(t => {
       catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
     });
+    const catTotalSum = Object.values(catTotals).reduce((a, b) => a + b, 0) || 1;
+    const catEntries = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
 
-  const catTotalSum = Object.values(catTotals).reduce((a, b) => a + b, 0) || 1;
-  const catEntries = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
-
-  // Expenses by Tag
-  const tagTotals: Record<string, number> = {};
-  allTx
-    .filter((t) => t.type === 'expense')
-    .forEach((t) => {
-      (t.tags || []).forEach((tag) => {
+    const tagTotals: Record<string, number> = {};
+    allTx.filter(t => t.type === 'expense').forEach(t => {
+      (t.tags || []).forEach(tag => {
         tagTotals[tag] = (tagTotals[tag] || 0) + t.amount;
       });
     });
+    const tagEntries = Object.entries(tagTotals).sort((a, b) => b[1] - a[1]);
 
-  const tagEntries = Object.entries(tagTotals).sort((a, b) => b[1] - a[1]);
+    return { allTx, totalIncome, totalExpense, netProfit, highestExpense, highestIncome, monthsData, catTotalSum, catEntries, tagEntries };
+  }, [state.transactions, state.investments]);
 
   return (
     <div className="space-y-6">
