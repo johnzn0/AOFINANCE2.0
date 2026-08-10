@@ -11,10 +11,13 @@ import {
   Landmark,
   ChevronRight,
   MoreVertical,
-  Banknote
+  Banknote,
+  PieChart as PieChartIcon,
+  BarChart3
 } from 'lucide-react';
 import { AppState, Investment, Account } from '../../types';
 import { fmt, round2, formatDateFull, todayISO } from '../../utils/formatters';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface InvestmentsViewProps {
   state: AppState;
@@ -53,6 +56,18 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({
   
   const totalReturn = totalCurrent - totalInvested;
   const returnPct = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
+
+  const allocationData = useMemo(() => {
+    const alloc: Record<string, number> = {};
+    state.investments.forEach(inv => {
+      alloc[inv.type] = (alloc[inv.type] || 0) + inv.current;
+    });
+    return Object.entries(alloc)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [state.investments]);
+
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#f43f5e'];
 
   // Add Asset Form
   const [name, setName] = useState('');
@@ -173,25 +188,67 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({
         </div>
       </div>
 
+      {/* Charts */}
+      {state.investments.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <h3 className="text-sm font-semibold text-slate-400 mb-6 flex items-center gap-2">
+              <PieChartIcon className="w-4 h-4" /> Alocação de Ativos
+            </h3>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={allocationData}
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {allocationData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number) => fmt(value)}
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc', borderRadius: '0.5rem' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap gap-4 mt-4 justify-center">
+              {allocationData.map((entry, index) => (
+                <div key={entry.name} className="flex items-center gap-2 text-xs text-slate-300">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                  <span>{entry.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <h3 className="text-sm font-semibold text-slate-400 mb-6 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" /> Rentabilidade
+            </h3>
+            <div className="flex flex-col items-center justify-center h-[250px] w-full text-slate-500 text-sm">
+               <div className="text-4xl font-mono mb-2 text-emerald-400 font-bold">{fmt(totalReturn)}</div>
+               <div>Acumulado</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-serif font-bold text-slate-100 flex items-center gap-2">
           <Landmark className="w-5 h-5 text-blue-400" /> Minha Carteira
         </h2>
         <button
           onClick={() => setShowAddModal(true)}
-          className="hidden md:flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" /> Novo Ativo
         </button>
       </div>
-
-      {/* Mobile FAB */}
-      <button 
-        onClick={() => setShowAddModal(true)}
-        className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-600/30 z-40 transition active:scale-95"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
 
       {state.investments.length === 0 ? (
         <div className="bg-slate-900/50 border border-slate-800 border-dashed rounded-xl p-8 text-center">

@@ -140,7 +140,13 @@ export const Header: React.FC<HeaderProps> = ({
 
         {onLogout && (
           <button
-            onClick={onLogout}
+            onClick={async () => {
+              try {
+                await onLogout();
+              } catch (err) {
+                console.error('Logout error:', err);
+              }
+            }}
             className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-medium transition"
             title="Sair da Conta"
           >

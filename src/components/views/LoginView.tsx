@@ -59,6 +59,28 @@ export const LoginView: React.FC<LoginViewProps> = ({
     }
   };
 
+  const handleGoogleLogin = async () => {
+    if (!onLoginWithGoogle) return;
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      await onLoginWithGoogle();
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      setErrorMsg(err.message || 'Ocorreu um erro no login com o Google.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await onLogout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -124,7 +146,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           </p>
 
           <button
-            onClick={() => onLogout()}
+            onClick={handleLogout}
             className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2"
           >
             <LogOut className="w-4 h-4" />
@@ -154,7 +176,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           </div>
 
           <button
-            onClick={() => onLogout()}
+            onClick={handleLogout}
             className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2"
           >
             <LogOut className="w-4 h-4" />
@@ -381,7 +403,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <div className="pt-4 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={onLoginWithGoogle}
+                  onClick={handleGoogleLogin}
                   className="w-full py-2.5 bg-white hover:bg-slate-50 text-slate-900 rounded-xl font-semibold transition flex items-center justify-center gap-3 shadow-md"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">

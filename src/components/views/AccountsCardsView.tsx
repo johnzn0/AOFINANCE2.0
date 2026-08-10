@@ -39,7 +39,13 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
   onTransfer
 }) => {
   // Modal States
-  const [activeModal, setActiveModal] = useState<'none' | 'account' | 'card' | 'transfer' | 'purchase' | 'bill'>('none');
+  const [activeModal, setActiveModal] = useState<'none' | 'account' | 'card' | 'transfer' | 'purchase' | 'bill' | 'payInvoice'>('none');
+
+  // Form States - Pay Invoice
+  const [payInvoiceCardId, setPayInvoiceCardId] = useState('');
+  const [payInvoiceAmount, setPayInvoiceAmount] = useState(0);
+  const [payInvoiceAccountId, setPayInvoiceAccountId] = useState(state.accounts[0]?.id || '');
+  const [payInvoiceMonth, setPayInvoiceMonth] = useState('');
 
   // Form States - Account
   const [accountName, setAccountName] = useState('');
@@ -95,6 +101,14 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
       setActiveModal('none');
       setCpDesc('');
       setCpAmount('');
+    }
+  };
+
+  const handlePayInvoice = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (payInvoiceCardId && payInvoiceAccountId && payInvoiceAmount > 0 && payInvoiceMonth) {
+      onPayCardInvoice(payInvoiceCardId, payInvoiceAmount, payInvoiceAccountId, payInvoiceMonth);
+      setActiveModal('none');
     }
   };
 
@@ -187,36 +201,52 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
                const usedPct = card.limit > 0 ? Math.min((currentInvoice / card.limit) * 100, 100) : 0;
 
                return (
-                 <div key={card.id} className="relative bg-slate-900 bg-gradient-to-br from-slate-800/50 to-transparent border border-slate-700 rounded-2xl p-5 overflow-hidden shadow-xl">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                 <div key={card.id} className="relative bg-slate-900 border border-slate-800 rounded-3xl p-6 overflow-hidden flex flex-col justify-between min-h-[220px] transition-all hover:border-slate-700">
+                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
                     
-                    <div className="flex justify-between items-center mb-6">
-                       <span className="font-bold text-white tracking-wide">{card.name}</span>
-                       <div className="flex gap-1">
-                          <div className="w-6 h-6 rounded-full bg-red-500/80 mix-blend-screen"></div>
-                          <div className="w-6 h-6 rounded-full bg-orange-500/80 mix-blend-screen -ml-3"></div>
+                    <div className="relative z-10 flex justify-between items-start">
+                       <span className="font-semibold text-slate-300 tracking-wide text-sm">{card.name}</span>
+                       <div className="flex gap-1 items-center">
+                          <div className="w-5 h-5 rounded-full bg-red-500/80 mix-blend-screen"></div>
+                          <div className="w-5 h-5 rounded-full bg-yellow-500/80 mix-blend-screen -ml-2"></div>
                        </div>
                     </div>
 
-                    <div className="space-y-4">
-                       <div>
-                         <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Fatura Atual</div>
-                         <div className="text-2xl font-bold font-mono text-white">{fmt(currentInvoice)}</div>
-                       </div>
+                    <div className="relative z-10 mt-6 flex-1 flex flex-col justify-center">
+                       <div className="text-xs text-slate-500 mb-1">Fatura Atual</div>
+                       <div className="text-3xl font-mono text-white tracking-tight">{fmt(currentInvoice)}</div>
+                    </div>
                        
-                       <div className="space-y-1">
-                         <div className="flex justify-between text-xs text-slate-400">
+                    <div className="relative z-10 mt-6 space-y-4">
+                       <div className="space-y-1.5">
+                         <div className="flex justify-between text-[11px] text-slate-500 uppercase tracking-wider font-medium">
                            <span>Limite Usado</span>
                            <span className="font-mono">{fmt(currentInvoice)} / {fmt(card.limit)}</span>
                          </div>
-                         <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                         <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
                             <div className="h-full bg-blue-500 rounded-full" style={{ width: `${usedPct}%` }}></div>
                          </div>
                        </div>
 
-                       <div className="flex justify-between text-xs text-slate-500 pt-2 border-t border-slate-700/50">
-                         <span>Vence dia {card.dueDate}</span>
-                         <span>Fecha dia {card.closingDate}</span>
+                       <div className="flex items-center justify-between pt-4 border-t border-slate-800/80">
+                         <div className="flex gap-4 text-xs text-slate-500">
+                           <span title="Fechamento">F: {card.closingDate}</span>
+                           <span title="Vencimento">V: {card.dueDate}</span>
+                         </div>
+                         
+                         {currentInvoice > 0 && (
+                           <button 
+                             onClick={() => {
+                               setPayInvoiceCardId(card.id);
+                               setPayInvoiceAmount(currentInvoice);
+                               setPayInvoiceMonth(currentMonth);
+                               setActiveModal('payInvoice');
+                             }}
+                             className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors bg-emerald-500/10 px-3 py-1.5 rounded-full"
+                           >
+                             Pagar Fatura
+                           </button>
+                         )}
                        </div>
                     </div>
                  </div>
@@ -333,6 +363,29 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
                       <input type="number" step="0.01" min="0" value={cpAmount} onChange={e => setCpAmount(e.target.value)} placeholder="0.00" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-xl focus:border-blue-500 outline-none text-center" required />
                     </div>
                     <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition mt-2">Registrar Compra</button>
+                 </div>
+               </form>
+             )}
+
+             {/* Pay Invoice Modal */}
+             {activeModal === 'payInvoice' && (
+               <form onSubmit={handlePayInvoice} className="p-6">
+                 <div className="flex justify-between items-center mb-6">
+                   <h3 className="text-lg font-bold text-white">Pagar Fatura</h3>
+                   <button type="button" onClick={() => setActiveModal('none')} className="text-slate-500 hover:text-white transition"><X className="w-5 h-5"/></button>
+                 </div>
+                 <div className="space-y-4">
+                    <div className="text-center p-4 bg-slate-950 rounded-xl border border-slate-800 mb-2">
+                       <div className="text-sm text-slate-400 mb-1">Fatura de {payInvoiceMonth}</div>
+                       <div className="text-3xl font-mono text-white font-bold">{fmt(payInvoiceAmount)}</div>
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase font-semibold text-slate-400 mb-1">Conta de Pagamento</label>
+                      <select value={payInvoiceAccountId} onChange={e => setPayInvoiceAccountId(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-emerald-500 outline-none">
+                        {state.accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      </select>
+                    </div>
+                    <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition mt-2">Confirmar Pagamento</button>
                  </div>
                </form>
              )}

@@ -163,7 +163,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="hidden md:flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md shadow-blue-600/20"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md shadow-blue-600/20"
           >
             <Plus className="w-4 h-4" />
             Nova Transação

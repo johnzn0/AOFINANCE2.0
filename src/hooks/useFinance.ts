@@ -650,6 +650,33 @@ export function useFinance() {
     });
   }, []);
 
+  const redeemFromGoal = useCallback((goalId: string, amount: number, accountId: string, date?: string) => {
+    setState((prev) => {
+      const goal = prev.goals.find((g) => g.id === goalId);
+      if (!goal || amount <= 0 || goal.saved < amount) return prev;
+
+      const newTx: Transaction = {
+        id: uid(),
+        date: date || todayISO(),
+        type: 'income',
+        category: 'Poupança/Metas',
+        description: `Resgate: ${goal.name}`,
+        amount: round2(amount),
+        accountId: accountId || prev.accounts[0]?.id || 'acc-1',
+      };
+
+      const updatedGoals = prev.goals.map((g) =>
+        g.id === goalId ? { ...g, saved: round2(g.saved - amount) } : g
+      );
+
+      return {
+        ...prev,
+        transactions: [newTx, ...prev.transactions],
+        goals: updatedGoals,
+      };
+    });
+  }, []);
+
   const deleteGoal = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
@@ -1142,6 +1169,7 @@ export function useFinance() {
     removeRecurringBill,
     addGoal,
     contributeToGoal,
+    redeemFromGoal,
     deleteGoal,
     addInvestment,
     addInvestmentContribution,

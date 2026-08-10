@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ArrowDownRight } from 'lucide-react';
+import { X, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { Goal, Account } from '../types';
 import { fmt } from '../utils/formatters';
 
@@ -8,6 +8,7 @@ interface GoalContribModalProps {
   accounts: Account[];
   onClose: () => void;
   onConfirm: (goalId: string, amount: number, accountId: string) => void;
+  onRedeem: (goalId: string, amount: number, accountId: string) => void;
 }
 
 export const GoalContribModal: React.FC<GoalContribModalProps> = ({
@@ -15,7 +16,9 @@ export const GoalContribModal: React.FC<GoalContribModalProps> = ({
   accounts,
   onClose,
   onConfirm,
+  onRedeem,
 }) => {
+  const [mode, setMode] = useState<'deposit' | 'redeem'>('deposit');
   const [amount, setAmount] = useState('');
   const [selectedAccount, setSelectedAccount] = useState(accounts[0]?.id || '');
   const [error, setError] = useState('');
@@ -29,7 +32,16 @@ export const GoalContribModal: React.FC<GoalContribModalProps> = ({
       setError('Informe um valor válido maior que R$ 0,00.');
       return;
     }
-    onConfirm(goal.id, val, selectedAccount);
+    
+    if (mode === 'redeem') {
+      if (val > goal.saved) {
+        setError('O valor não pode ser maior que o saldo atual da meta.');
+        return;
+      }
+      onRedeem(goal.id, val, selectedAccount);
+    } else {
+      onConfirm(goal.id, val, selectedAccount);
+    }
     onClose();
   };
 
@@ -43,14 +55,37 @@ export const GoalContribModal: React.FC<GoalContribModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
-            <ArrowDownRight className="w-5 h-5" />
+        <div className="flex items-center gap-3 mb-6">
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${
+            mode === 'deposit' 
+              ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
+              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+          }`}>
+            {mode === 'deposit' ? <ArrowDownRight className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
           </div>
           <div>
-            <h3 className="text-lg font-serif font-bold text-white">Guardar Valor na Meta</h3>
+            <h3 className="text-lg font-serif font-bold text-white">Transação de Meta</h3>
             <p className="text-xs text-slate-400">{goal.name}</p>
           </div>
+        </div>
+
+        <div className="flex bg-slate-950 rounded-xl p-1 mb-6 border border-slate-800">
+          <button
+            onClick={() => { setMode('deposit'); setError(''); }}
+            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              mode === 'deposit' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-300'
+            }`}
+          >
+            Guardar
+          </button>
+          <button
+            onClick={() => { setMode('redeem'); setError(''); }}
+            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              mode === 'redeem' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-300'
+            }`}
+          >
+            Resgatar
+          </button>
         </div>
 
         <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 mb-4 flex justify-between items-center text-xs">

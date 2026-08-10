@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock } from 'lucide-react';
-import { AppState, Transaction } from '../../types';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus } from 'lucide-react';
+import { AppState, Transaction, RecurringBill } from '../../types';
 import { fmt, monthLabel, todayISO, formatDate } from '../../utils/formatters';
 
 interface CalendarViewProps {
   state: AppState;
+  onAddTransaction: (tx: Omit<Transaction, 'id' | 'date'> & { date: string }, installments?: number) => void;
 }
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ state }) => {
+export const CalendarView: React.FC<CalendarViewProps> = ({ state, onAddTransaction }) => {
   const [calCursor, setCalCursor] = useState<Date>(() => {
     const d = new Date();
     d.setDate(1);
@@ -26,11 +27,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ state }) => {
   // Group transaction & recurring bill data by day number
   const dayData: Record<
     number,
-    { income: number; expense: number; items: Transaction[]; billNames: string[] }
+    { income: number; expense: number; items: Transaction[]; bills: RecurringBill[] }
   > = {};
 
   for (let d = 1; d <= daysInMonth; d++) {
-    dayData[d] = { income: 0, expense: 0, items: [], billNames: [] };
+    dayData[d] = { income: 0, expense: 0, items: [], bills: [] };
   }
 
   state.transactions.forEach((t) => {
@@ -46,7 +47,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ state }) => {
     .filter((b) => b.active && b.day <= daysInMonth)
     .forEach((b) => {
       if (dayData[b.day]) {
-        dayData[b.day].billNames.push(b.name);
+        dayData[b.day].bills.push(b);
       }
     });
 
@@ -134,10 +135,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ state }) => {
                   >
                     {d}
                   </span>
-                  {info.billNames.length > 0 && (
+                  {info.bills.length > 0 && (
                     <span
                       className="w-2 h-2 rounded-full bg-amber-400"
-                      title={`Conta fixa: ${info.billNames.join(', ')}`}
+                      title={`Conta fixa: ${info.bills.map(b => b.name).join(', ')}`}
                     />
                   )}
                 </div>
@@ -168,13 +169,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ state }) => {
             </span>
           </h3>
 
-          {selectedDayDetails.billNames.length > 0 && (
-            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-xs flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>
-                Vencimento de conta fixa cadastrada neste dia:{' '}
-                <strong>{selectedDayDetails.billNames.join(', ')}</strong>
-              </span>
+          {selectedDayDetails.bills.length > 0 && (
+            <div className="space-y-2">
+              {selectedDayDetails.bills.map((b) => (
+                <div key={b.id} className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      Vencimento: <strong>{b.name}</strong> ({fmt(b.amount)})
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const payDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+                      onAddTransaction({
+                        date: payDate,
+                        description: b.name,
+                        amount: b.amount,
+                        category: b.category,
+                        accountId: b.accountId,
+                        type: 'expense',
+                        status: 'paid'
+                      });
+                    }}
+                    className="flex items-center gap-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 px-2 py-1 rounded transition-colors"
+                  >
+                    <Plus className="w-3 h-3" /> Pagar
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 

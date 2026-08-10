@@ -290,7 +290,7 @@ export default function App() {
 
             {currentPage === 'reports' && <Suspense fallback={<FallbackLoader />}><ReportsView state={finance.state} /></Suspense>}
 
-            {currentPage === 'calendar' && <Suspense fallback={<FallbackLoader />}><CalendarView state={finance.state} /></Suspense>}
+            {currentPage === 'calendar' && <Suspense fallback={<FallbackLoader />}><CalendarView state={finance.state} onAddTransaction={finance.addTransaction} /></Suspense>}
 
             {currentPage === 'simulator' && <Suspense fallback={<FallbackLoader />}><SimulatorView /></Suspense>}
 
@@ -359,6 +359,7 @@ export default function App() {
         accounts={finance.state.accounts}
         onClose={() => setContribGoalId(null)}
         onConfirm={finance.contributeToGoal}
+        onRedeem={finance.redeemFromGoal}
       />
 
 
