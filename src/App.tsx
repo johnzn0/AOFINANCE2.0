@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFinance } from './hooks/useFinance';
+import { usePWAInstall } from './hooks/usePWAInstall';
 import { setHideValues } from './utils/formatters';
 import { TabPage } from './types';
 import { Sidebar } from './components/Sidebar';
@@ -41,6 +42,7 @@ const FallbackLoader = () => (
 
 export default function App() {
   const finance = useFinance();
+  const pwa = usePWAInstall();
   const [currentPage, setCurrentPage] = useState<TabPage>('overview');
 
   // Detect reset token in URL
@@ -175,10 +177,7 @@ export default function App() {
   return (
     <div className={`${themeMode === 'light' ? 'light-theme bg-slate-50 text-slate-900' : 'dark-theme bg-slate-950 text-slate-100'} ${hideValues ? 'hide-values' : ''} min-h-screen flex flex-col font-sans selection:bg-blue-500 selection:text-white transition-colors duration-200`}>
       <Toast toast={toast} onClose={() => setToast(null)} />
-      <PWAInstallBanner
-        forceShowModal={isInstallModalOpen}
-        onCloseModal={() => setIsInstallModalOpen(false)}
-      />
+      <PWAInstallBanner pwa={pwa} />
       <div className="flex flex-1">
         {/* Desktop Sidebar */}
       <Sidebar
@@ -189,7 +188,9 @@ export default function App() {
         state={finance.state}
         userProfile={finance.userProfile}
         onOpenAssistant={() => setIsAssistantOpen(true)}
-        onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        onOpenInstallModal={pwa.triggerInstall}
+        onTriggerInstall={pwa.triggerInstall}
+        isInstalled={pwa.isInstalled}
         onOpenQuickTx={() => setIsQuickTxOpen(true)}
       />
 
@@ -207,7 +208,7 @@ export default function App() {
           isCloudSynced={finance.isCloudSynced}
           onToggleTheme={() => finance.updateSettings({ themeMode: themeMode === 'light' ? 'dark' : 'light' })}
           onToggleHideValues={() => finance.updateSettings({ hideValues: !hideValues })}
-          onOpenInstallModal={() => setIsInstallModalOpen(true)}
+          onOpenInstallModal={pwa.triggerInstall}
           onOpenQuickTx={() => setIsQuickTxOpen(true)}
         />
 

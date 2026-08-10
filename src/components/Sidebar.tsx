@@ -17,6 +17,7 @@ import {
   Download,
   Sparkles,
   Plus,
+  Check,
 } from 'lucide-react';
 import { TabPage, AppState, UserProfile } from '../types';
 import { monthLabel } from '../utils/formatters';
@@ -30,6 +31,8 @@ interface SidebarProps {
   userProfile?: UserProfile | null;
   onOpenAssistant?: () => void;
   onOpenInstallModal?: () => void;
+  onTriggerInstall?: () => void;
+  isInstalled?: boolean;
   onOpenQuickTx?: () => void;
 }
 
@@ -55,6 +58,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userProfile,
   onOpenAssistant,
   onOpenInstallModal,
+  onTriggerInstall,
+  isInstalled = false,
   onOpenQuickTx,
 }) => {
   const profileName = userProfile?.displayName || state.settings.profileName || 'Configurar Perfil';
@@ -156,21 +161,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {onOpenInstallModal && typeof window !== 'undefined' && !window.matchMedia('(display-mode: standalone)').matches && !(window.navigator as any).standalone && (
-        <button
-          onClick={onOpenInstallModal}
-          className="mt-3 flex items-center justify-between p-2.5 bg-gradient-to-r from-blue-600/20 to-amber-500/20 border border-blue-500/30 hover:border-blue-500/60 rounded-xl transition text-left group active:scale-95"
-        >
-          <div className="flex items-center gap-2.5">
-            <Download className="w-4 h-4 text-amber-400 shrink-0" />
-            <div>
-              <div className="text-xs font-bold text-white group-hover:text-amber-300 transition">
-                Instalar Aplicativo
+      {isInstalled ? (
+        <div className="mt-3 flex items-center justify-center gap-2 p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-semibold">
+          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Aplicativo instalado ✓</span>
+        </div>
+      ) : (
+        (onTriggerInstall || onOpenInstallModal) && (
+          <button
+            type="button"
+            onClick={onTriggerInstall || onOpenInstallModal}
+            className="mt-3 flex items-center justify-between p-2.5 bg-gradient-to-r from-blue-600/20 to-amber-500/20 border border-blue-500/30 hover:border-blue-500/60 rounded-xl transition text-left group active:scale-95 cursor-pointer w-full"
+          >
+            <div className="flex items-center gap-2.5">
+              <Download className="w-4 h-4 text-amber-400 shrink-0" />
+              <div>
+                <div className="text-xs font-bold text-white group-hover:text-amber-300 transition">
+                  Baixar aplicativo
+                </div>
+                <div className="text-[10px] text-slate-400">Instalação direta no celular/PC</div>
               </div>
-              <div className="text-[10px] text-slate-400">Instalação direta no celular</div>
             </div>
-          </div>
-        </button>
+          </button>
+        )
       )}
 
       {/* Profile chip */}
