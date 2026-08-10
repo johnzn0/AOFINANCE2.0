@@ -51,10 +51,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
   const primaryTabsRight: { id: TabPage; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'accounts', label: 'Contas', icon: CreditCard },
-    { id: 'investments', label: 'Investir', icon: TrendingUp },
   ];
 
   const secondaryTabs: { id: TabPage; label: string; desc: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
+    { id: 'investments', label: 'Investimentos', desc: 'Gerencie sua carteira de investimentos', icon: TrendingUp, color: 'text-green-400 bg-green-500/10' },
     { id: 'goals', label: 'Metas Financeiras', desc: 'Acompanhe seus objetivos e economias', icon: Target, color: 'text-amber-400 bg-amber-500/10' },
     { id: 'reports', label: 'Relatórios & Gráficos', desc: 'Análise detalhada de receitas e despesas', icon: BarChart3, color: 'text-emerald-400 bg-emerald-500/10' },
     { id: 'annual', label: 'Visão Anual', desc: 'Projeção e resumo consolidado do ano', icon: CalendarDays, color: 'text-indigo-400 bg-indigo-500/10' },
@@ -180,7 +180,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
         {/* Central Quick Add FAB */}
         {onOpenQuickTx && (
-          <div className="flex flex-col items-center justify-center -mt-5 px-1">
+          <div className="flex flex-col items-center justify-center flex-1 -mt-5 px-1 relative z-10">
             <button
               type="button"
               onClick={() => {

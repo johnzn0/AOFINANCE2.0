@@ -80,7 +80,7 @@ export function parseOFX(content: string, defaultAccountId = 'main', userTransac
   const transactions: ParsedStatementTransaction[] = [];
 
   // Match STMTTRN blocks
-  const matches = content.match(/<STMTTRN>[\s\S]*?(?:<\/STMTTRN>|(?=<STMTTRN>)|(?=<\/BANKTRANLIST>)|$)/gi) || [];
+  const matches: string[] = content.match(/<STMTTRN>[\s\S]*?(?:<\/STMTTRN>|(?=<STMTTRN>)|(?=<\/BANKTRANLIST>)|$)/gi) || [];
 
   matches.forEach((block, index) => {
     const trnTypeMatch = block.match(/<TRNTYPE>([^<\r\n]+)/i);

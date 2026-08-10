@@ -171,14 +171,6 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         </div>
       </div>
 
-      {/* Mobile FAB */}
-      <button
-        onClick={() => setShowAddModal(true)}
-        className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-600/30 z-40 transition active:scale-95"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
-
       {/* Modals */}
       <TransactionModal
         isOpen={showAddModal}

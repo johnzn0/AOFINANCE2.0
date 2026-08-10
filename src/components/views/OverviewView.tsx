@@ -168,7 +168,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
            <h1 className="text-2xl font-serif font-bold text-white flex items-center gap-2">
              Olá, {state.settings.profileName || userProfile?.displayName || 'usuário'} 👋
            </h1>
-           <p className="text-slate-400 text-sm mt-1">Aqui está o resumo financeiro de {cursor.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}.</p>
+           <p className="text-slate-400 text-sm mt-1">Aqui está o seu resumo de {cursor.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}.</p>
          </div>
          {onOpenAssistant && (
            <button
@@ -181,50 +181,71 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
          )}
       </div>
 
-      {/* Top Main KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Balance Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition group relative overflow-hidden">
-          <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
-          <div className="flex justify-between items-start mb-4 relative z-10">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Saldo Geral</span>
-            <div className="w-8 h-8 rounded-lg bg-slate-800/80 flex items-center justify-center text-blue-400">
-              <Wallet className="w-4 h-4" />
+      {/* Main Fintech Header (Balance + Quick Actions) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h2 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
+              <Wallet className="w-4 h-4" /> Saldo em Contas
+            </h2>
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-4xl sm:text-5xl font-mono font-bold text-white tracking-tight">
+                {fmt(totalBalanceInBank)}
+              </h1>
+            </div>
+            
+            <div className="flex items-center gap-4 mt-4 text-sm">
+              <div className="flex items-center gap-1.5 text-emerald-400">
+                <ArrowUpRight className="w-4 h-4" />
+                <span className="font-medium">{fmt(income)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-rose-400">
+                <ArrowDownRight className="w-4 h-4" />
+                <span className="font-medium">{fmt(expense)}</span>
+              </div>
             </div>
           </div>
-          <div className="relative z-10">
-            <h3 className="text-3xl font-mono font-bold text-white mb-1">{fmt(totalBalanceInBank)}</h3>
-            <p className="text-xs text-slate-500">Total em contas</p>
-          </div>
-        </div>
 
-        {/* Income Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition group relative overflow-hidden">
-          <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
-          <div className="flex justify-between items-start mb-4 relative z-10">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Receitas do Mês</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="relative z-10">
-            <h3 className="text-3xl font-mono font-bold text-emerald-400 mb-1">{fmt(income)}</h3>
-            <p className="text-xs text-slate-500">Entradas projetadas</p>
-          </div>
-        </div>
-
-        {/* Expenses Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition group relative overflow-hidden">
-          <div className="absolute -right-6 -top-6 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all"></div>
-          <div className="flex justify-between items-start mb-4 relative z-10">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Despesas do Mês</span>
-            <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-400 border border-rose-500/20">
-              <TrendingDown className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="relative z-10">
-            <h3 className="text-3xl font-mono font-bold text-rose-400 mb-1">{fmt(expense)}</h3>
-            <p className="text-xs text-slate-500">Saídas consolidadas</p>
+          {/* Quick Action Buttons */}
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-3">
+            <button
+              onClick={() => onSelectPage('transactions')}
+              className="flex-1 md:flex-none flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 transition-colors p-4 rounded-2xl min-w-[100px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white">
+                <ArrowUpRight className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-medium text-slate-300">Receita</span>
+            </button>
+            <button
+              onClick={() => onSelectPage('transactions')}
+              className="flex-1 md:flex-none flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 transition-colors p-4 rounded-2xl min-w-[100px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white">
+                <ArrowDownRight className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-medium text-slate-300">Despesa</span>
+            </button>
+            <button
+              onClick={() => onSelectPage('investments')}
+              className="flex-1 md:flex-none flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 transition-colors p-4 rounded-2xl min-w-[100px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-medium text-slate-300">Investir</span>
+            </button>
+            <button
+              onClick={() => onSelectPage('accounts')}
+              className="flex-1 md:flex-none flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 transition-colors p-4 rounded-2xl min-w-[100px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-medium text-slate-300">Cartões</span>
+            </button>
           </div>
         </div>
       </div>

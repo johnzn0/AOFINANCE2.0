@@ -35,8 +35,9 @@ class LoggerService {
 
       window.addEventListener('unhandledrejection', (event) => {
         event.preventDefault();
-        this.error('Unhandled Promise Rejection', event.reason, {
+        this.warn('Unhandled Promise Rejection', {
           reason: String(event.reason?.message || event.reason),
+          stack: event.reason?.stack,
         });
       });
     }
@@ -79,7 +80,7 @@ class LoggerService {
     // Console output for dev environment
     const consoleMsg = `[${entry.timestamp}] [${level.toUpperCase()}] ${message}`;
     if (level === 'error') {
-      console.error(consoleMsg, errorObj || '', context || '');
+      console.error(consoleMsg, errorObj || '', context || '', errorObj?.stack || '');
     } else if (level === 'warn') {
       console.warn(consoleMsg, context || '');
     } else if (level === 'debug') {
