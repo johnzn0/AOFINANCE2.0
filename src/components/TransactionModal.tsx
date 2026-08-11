@@ -53,6 +53,25 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   // Smart Category Prediction
   const [suggestion, setSuggestion] = useState<CategoryPrediction | null>(null);
 
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setType('expense');
+      setAmountStr('');
+      setDescription('');
+      setCategory(state.settings.categories[0] || 'Outros');
+      setDate(todayISO());
+      setAccountId(state.accounts[0]?.id || '');
+      if (state.accounts.length > 1) setToAccountId(state.accounts[1].id);
+      setTags([]);
+      setTagInput('');
+      setIsInstallment(false);
+      setInstallments('2');
+      setDestinationId('');
+      setSuggestion(null);
+    }
+  }, [isOpen, state.settings.categories, state.accounts]);
+
   useEffect(() => {
     if (description.trim().length >= 3 && type !== 'transfer' && type !== 'investment') {
       const pred = predictCategory(
