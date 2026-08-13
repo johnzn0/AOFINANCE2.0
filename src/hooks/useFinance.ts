@@ -103,7 +103,8 @@ export function useFinance() {
         if (window.opener && window.opener !== window && (window.location.hash.includes('access_token') || window.location.search.includes('code'))) {
           const supabase = getSupabase();
           if (supabase) {
-            const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+            const res = await supabase.auth.getSession().catch(() => null);
+            const session = res?.data?.session;
             if (session?.user) {
               try {
                 window.opener.postMessage({ type: 'SUPABASE_AUTH_SUCCESS' }, '*');
@@ -154,7 +155,8 @@ export function useFinance() {
           });
 
           // Check current session
-          const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+          const res = await supabase.auth.getSession().catch(() => null);
+          const session = res?.data?.session;
           if (session?.user) {
             await syncUser(session.user);
             setIsAuthLoading(false);
@@ -879,7 +881,13 @@ export function useFinance() {
       setCurrentUser((prev) => (prev ? { ...prev, displayName: trimmedName } : null));
       const supabase = getSupabase();
       if (supabase) {
-        Promise.resolve(supabase.from('profiles').update({ display_name: trimmedName }).eq('id', currentUser.uid)).catch(() => {});
+        (async () => {
+          try {
+            await supabase.from('profiles').update({ display_name: trimmedName }).eq('id', currentUser.uid);
+          } catch (e) {
+            console.warn('Failed to update profile name:', e);
+          }
+        })();
       }
     }
   }, [currentUser]);

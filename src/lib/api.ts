@@ -223,11 +223,16 @@ export async function resetPasswordWithApi(email: string, newPassword?: string) 
   if (!supabase) throw new Error('Supabase não configurado');
 
   if (newPassword) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
-      if (updateErr) throw updateErr;
-      return { message: 'Senha atualizada com sucesso!' };
+    try {
+      const res = await supabase.auth.getSession();
+      const session = res?.data?.session;
+      if (session?.user) {
+        const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
+        if (updateErr) throw updateErr;
+        return { message: 'Senha atualizada com sucesso!' };
+      }
+    } catch (e) {
+      console.warn('Error checking session in resetPasswordWithApi:', e);
     }
   }
 
@@ -255,61 +260,73 @@ export async function resetPasswordWithApi(email: string, newPassword?: string) 
 }
 
 export async function getCurrentUserProfile() {
-  const supabase = getSupabase();
-  if (!supabase) return null;
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return null;
-  
-  const email = session.user.email || '';
-  
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-  
-  const isAdmin = email.toLowerCase() === 'johnozzi21@gmail.com';
-  const role = profile?.role || (isAdmin ? 'admin' : 'user');
-  const status = profile?.status || (isAdmin ? 'approved' : 'pending');
-  const plan = profile?.plan || 'free';
-
-  const metadataName = session.user.user_metadata?.full_name || session.user.user_metadata?.name;
-  let userDisplayName = profile?.display_name;
-  if (!userDisplayName || userDisplayName === 'João Silva' || userDisplayName === email.split('@')[0]) {
-    if (metadataName) {
-      userDisplayName = metadataName;
-    }
-  }
-  if (!userDisplayName) {
-    userDisplayName = email.split('@')[0];
-  }
-
-  if (!profile) {
+    const res = await supabase.auth.getSession().catch(() => null);
+    const session = res?.data?.session;
+    if (!session?.user) return null;
+    
+    const email = session.user.email || '';
+    
+    let profile: any = null;
     try {
-      await supabase.from('profiles').upsert({
-        id: session.user.id,
-        email: email,
-        display_name: userDisplayName,
-        role: role,
-        status: status,
-        plan: plan,
-      });
-    } catch (err) {
-      console.warn('Error saving profile to database:', err);
+      const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+      profile = data;
+    } catch (e) {
+      console.warn('Error querying profile:', e);
     }
-  } else if (profile.display_name !== userDisplayName && userDisplayName) {
-    try {
-      await supabase.from('profiles').update({ display_name: userDisplayName }).eq('id', session.user.id);
-    } catch (err) {
-      console.warn('Error updating profile display name:', err);
-    }
-  }
+    
+    const isAdmin = email.toLowerCase() === 'johnozzi21@gmail.com';
+    const role = profile?.role || (isAdmin ? 'admin' : 'user');
+    const status = profile?.status || (isAdmin ? 'approved' : 'pending');
+    const plan = profile?.plan || 'free';
 
-  return {
-    uid: session.user.id,
-    email: email,
-    displayName: userDisplayName,
-    role: role as any,
-    status: status as any,
-    plan: plan as any,
-  };
+    const metadataName = session.user.user_metadata?.full_name || session.user.user_metadata?.name;
+    let userDisplayName = profile?.display_name;
+    if (!userDisplayName || userDisplayName === 'João Silva' || userDisplayName === email.split('@')[0]) {
+      if (metadataName) {
+        userDisplayName = metadataName;
+      }
+    }
+    if (!userDisplayName) {
+      userDisplayName = email.split('@')[0];
+    }
+
+    if (!profile) {
+      try {
+        await supabase.from('profiles').upsert({
+          id: session.user.id,
+          email: email,
+          display_name: userDisplayName,
+          role: role,
+          status: status,
+          plan: plan,
+        });
+      } catch (err) {
+        console.warn('Error saving profile to database:', err);
+      }
+    } else if (profile.display_name !== userDisplayName && userDisplayName) {
+      try {
+        await supabase.from('profiles').update({ display_name: userDisplayName }).eq('id', session.user.id);
+      } catch (err) {
+        console.warn('Error updating profile display name:', err);
+      }
+    }
+
+    return {
+      uid: session.user.id,
+      email: email,
+      displayName: userDisplayName,
+      role: role as any,
+      status: status as any,
+      plan: plan as any,
+    };
+  } catch (err) {
+    console.warn('getCurrentUserProfile exception:', err);
+    return null;
+  }
 }
 
 export async function syncUserWithSupabase() {
@@ -317,71 +334,97 @@ export async function syncUserWithSupabase() {
 }
 
 export async function loadStateFromSupabase() {
-  const supabase = getSupabase();
-  if (!supabase) return null;
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return null;
+    const res = await supabase.auth.getSession().catch(() => null);
+    const session = res?.data?.session;
+    if (!session?.user) return null;
 
-  const { data, error } = await supabase
-    .from('user_data')
-    .select('data')
-    .eq('user_id', session.user.id)
-    .maybeSingle();
-  
-  if (error && error.code !== 'PGRST116') {
-    console.warn('Error loading state from Supabase:', error);
+    let data: any = null;
+    let error: any = null;
+    try {
+      const resData = await supabase
+        .from('user_data')
+        .select('data')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      data = resData.data;
+      error = resData.error;
+    } catch (err) {
+      error = err;
+    }
+    
+    if (error && (error as any).code !== 'PGRST116') {
+      console.warn('Error loading state from Supabase:', error);
+    }
+
+    return data?.data || null;
+  } catch (err) {
+    console.warn('loadStateFromSupabase exception:', err);
+    return null;
   }
-
-  return data?.data || null;
 }
 
 export async function saveStateToSupabase(state: any) {
-  const supabase = getSupabase();
-  if (!supabase) return { success: false, error: 'Supabase client not initialized' };
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return { success: false, error: 'Supabase client not initialized' };
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return { success: false, error: 'User not logged in' };
+    const res = await supabase.auth.getSession().catch(() => null);
+    const session = res?.data?.session;
+    if (!session?.user) return { success: false, error: 'User not logged in' };
 
-  // Try upsert first
-  const { error } = await supabase
-    .from('user_data')
-    .upsert({
-      user_id: session.user.id,
-      data: state,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
-  
-  if (error) {
-    console.warn('Upsert state failed, attempting fallback update/insert:', error.message);
-    // Fallback: check if row exists and update or insert
-    const { data: existing } = await supabase
+    // Try upsert first
+    const { error } = await supabase
       .from('user_data')
-      .select('user_id')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
-
-    if (existing) {
-      const { error: updateErr } = await supabase
-        .from('user_data')
-        .update({ data: state, updated_at: new Date().toISOString() })
-        .eq('user_id', session.user.id);
-      if (updateErr) {
-        console.error('Error updating state in Supabase:', updateErr);
-        return { success: false, error: updateErr.message };
+      .upsert({
+        user_id: session.user.id,
+        data: state,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+    
+    if (error) {
+      console.warn('Upsert state failed, attempting fallback update/insert:', error.message);
+      // Fallback: check if row exists and update or insert
+      let existing: any = null;
+      try {
+        const existingRes = await supabase
+          .from('user_data')
+          .select('user_id')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        existing = existingRes.data;
+      } catch (e) {
+        existing = null;
       }
-    } else {
-      const { error: insertErr } = await supabase
-        .from('user_data')
-        .insert({ user_id: session.user.id, data: state, updated_at: new Date().toISOString() });
-      if (insertErr) {
-        console.error('Error inserting state into Supabase:', insertErr);
-        return { success: false, error: insertErr.message };
+
+      if (existing) {
+        const { error: updateErr } = await supabase
+          .from('user_data')
+          .update({ data: state, updated_at: new Date().toISOString() })
+          .eq('user_id', session.user.id);
+        if (updateErr) {
+          console.error('Error updating state in Supabase:', updateErr);
+          return { success: false, error: updateErr.message };
+        }
+      } else {
+        const { error: insertErr } = await supabase
+          .from('user_data')
+          .insert({ user_id: session.user.id, data: state, updated_at: new Date().toISOString() });
+        if (insertErr) {
+          console.error('Error inserting state into Supabase:', insertErr);
+          return { success: false, error: insertErr.message };
+        }
       }
     }
-  }
 
-  return { success: true };
+    return { success: true };
+  } catch (err: any) {
+    console.warn('saveStateToSupabase exception:', err);
+    return { success: false, error: err?.message || 'Save failed' };
+  }
 }
 
 export async function fetchAdminUsers() {
