@@ -1,0 +1,15 @@
+--- src/lib/logger.ts
++++ src/lib/logger.ts
+@@ -37,6 +37,12 @@
+       window.addEventListener('unhandledrejection', (event) => {
+         event.preventDefault();
++        
++        const reasonStr = String(event.reason?.message || event.reason);
++        if (reasonStr.includes('WebSocket closed without opened') || reasonStr.includes('failed to connect to websocket')) {
++          return; // Ignore Vite HMR benign errors
++        }
++
+         this.warn('Unhandled Promise Rejection', {
+           reason: String(event.reason?.message || event.reason),
+           stack: event.reason?.stack,
+         });

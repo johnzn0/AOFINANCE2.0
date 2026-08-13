@@ -35,8 +35,14 @@ class LoggerService {
 
       window.addEventListener('unhandledrejection', (event) => {
         event.preventDefault();
+        
+        const reasonStr = String(event.reason?.message || event.reason);
+        if (reasonStr.includes('WebSocket closed') || reasonStr.includes('failed to connect to websocket')) {
+          return; // Ignore Vite HMR benign errors
+        }
+
         this.warn('Unhandled Promise Rejection', {
-          reason: String(event.reason?.message || event.reason),
+          reason: reasonStr,
           stack: event.reason?.stack,
         });
       });
