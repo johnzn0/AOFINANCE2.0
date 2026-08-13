@@ -1,0 +1,11 @@
+--- src/utils/formatters.ts
++++ src/utils/formatters.ts
+@@ -51,7 +51,7 @@
+     if (tr.toId === accountId) bal += tr.amount;
+   });
+ 
+-  return bal;
++  return Math.round(bal * 100) / 100;
+ };
+ EOF
+patch -p0 < fix-math.patch

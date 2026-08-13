@@ -114,7 +114,7 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
 
   // Helper calculation
   const totalBalance = useMemo(() => {
-    return state.accounts.reduce((sum, acc) => sum + calculateAccountBalance(acc.id, state), 0);
+    return Math.round(state.accounts.reduce((sum, acc) => sum + calculateAccountBalance(acc.id, state), 0) * 100) / 100;
   }, [state.accounts, state.transactions]);
 
   return (
@@ -197,7 +197,7 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
             {state.cards.map(card => {
                // Calculate used limit
                const currentMonth = new Date().toISOString().slice(0, 7);
-               const currentInvoice = state.cardPurchases.filter(p => p.cardId === card.id && p.date.startsWith(currentMonth)).reduce((s, p) => s + p.amount, 0);
+               const currentInvoice = Math.round(state.cardPurchases.filter(p => p.cardId === card.id && p.date.startsWith(currentMonth)).reduce((s, p) => s + p.amount, 0) * 100) / 100;
                const usedPct = card.limit > 0 ? Math.min((currentInvoice / card.limit) * 100, 100) : 0;
 
                return (

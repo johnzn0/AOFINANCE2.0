@@ -1,0 +1,18 @@
+--- src/components/views/OverviewView.tsx
++++ src/components/views/OverviewView.tsx
+@@ -99,7 +99,7 @@
+             {state.cards.slice(0, 3).map(c => {
+                // Calculate used limit
+                const currentMonthStr = new Date().toISOString().slice(0, 7);
+-               const currentInvoice = state.cardPurchases.filter(p => p.cardId === c.id && p.date.startsWith(currentMonthStr)).reduce((s, p) => s + p.amount, 0);
++               const currentInvoice = Math.round(state.cardPurchases.filter(p => p.cardId === c.id && p.date.startsWith(currentMonthStr)).reduce((s, p) => s + p.amount, 0) * 100) / 100;
+                const usedPct = c.limit > 0 ? Math.min((currentInvoice / c.limit) * 100, 100) : 0;
+                return (
+                  <div key={c.id} className="relative bg-slate-900 border border-slate-800 rounded-3xl p-6 overflow-hidden flex flex-col justify-between min-h-[160px]">
+@@ -122,7 +122,7 @@
+      const monthStr = d.toISOString().slice(0, 10);
+      const dayTxs = state.transactions.filter(t => t.date === monthStr);
+-     const dayTotal = dayTxs.reduce((s, t) => s + t.amount, 0);
++     const dayTotal = Math.round(dayTxs.reduce((s, t) => s + t.amount, 0) * 100) / 100;
+      data.push({
+        date: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),

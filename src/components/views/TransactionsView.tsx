@@ -71,7 +71,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
     const currentMonthTx = state.transactions.filter((t) => t.date.startsWith(currentMonth));
     const income = currentMonthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const expense = currentMonthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    return { monthIncome: income, monthExpense: expense };
+    return { monthIncome: Math.round(income * 100) / 100, monthExpense: Math.round(expense * 100) / 100 };
   }, [state.transactions, currentMonth]);
 
   // Sorting and Filtering
@@ -79,7 +79,9 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
     return [...state.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [state.transactions]);
 
-  const runningBalance = state.accounts.reduce((sum, acc) => sum + calculateAccountBalance(acc.id, state), 0);
+  const runningBalance = useMemo(() => {
+    return Math.round(state.accounts.reduce((sum, acc) => sum + calculateAccountBalance(acc.id, state), 0) * 100) / 100;
+  }, [state.accounts, state.transactions, state.transfers]);
 
   const filtered = sorted.filter((t) => {
     if (filterType !== 'all' && t.type !== filterType) return false;

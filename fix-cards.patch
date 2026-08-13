@@ -1,0 +1,11 @@
+--- src/components/views/AccountsCardsView.tsx
++++ src/components/views/AccountsCardsView.tsx
+@@ -197,8 +197,8 @@
+             {state.cards.map(card => {
+                // Calculate used limit
+                const currentMonth = new Date().toISOString().slice(0, 7);
+-               const currentInvoice = state.cardPurchases.filter(p => p.cardId === card.id && p.date.startsWith(currentMonth)).reduce((s, p) => s + p.amount, 0);
++               const currentInvoice = Math.round(state.cardPurchases.filter(p => p.cardId === card.id && p.date.startsWith(currentMonth)).reduce((s, p) => s + p.amount, 0) * 100) / 100;
+                const usedPct = card.limit > 0 ? Math.min((currentInvoice / card.limit) * 100, 100) : 0;
+ 
+                return (

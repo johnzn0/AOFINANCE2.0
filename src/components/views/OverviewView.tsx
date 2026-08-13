@@ -98,7 +98,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         state.cards.forEach(c => {
            if (c.dueDay >= todayNum) {
                const currentMonthStr = todayISO().slice(0, 7);
-               const currentInvoice = state.cardPurchases.filter(p => p.cardId === c.id && p.date.startsWith(currentMonthStr)).reduce((s, p) => s + p.amount, 0);
+               const currentInvoice = Math.round(state.cardPurchases.filter(p => p.cardId === c.id && p.date.startsWith(currentMonthStr)).reduce((s, p) => s + p.amount, 0) * 100) / 100;
                if (currentInvoice > 0) {
                   bills.push({ id: c.id, name: `Fatura ${c.name}`, amount: currentInvoice, day: c.dueDay, type: 'card', category: 'Cartão de Crédito' });
                }
@@ -122,7 +122,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
     for (let i = 1; i <= limitDay; i++) {
        const dateStr = `${curKey}-${i.toString().padStart(2, '0')}`;
        const dayTxs = monthTx.filter(t => t.type === 'expense' && t.date === dateStr);
-       const dayTotal = dayTxs.reduce((s, t) => s + t.amount, 0);
+       const dayTotal = Math.round(dayTxs.reduce((s, t) => s + t.amount, 0) * 100) / 100;
        acc += dayTotal;
        data.push({ 
          day: i, 
