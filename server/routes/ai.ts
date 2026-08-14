@@ -25,7 +25,7 @@ Contexto do Usuário:
 - Metas Cadastradas: ${userSummary?.goalsCount || 0}`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.7-flash',
       contents: prompt || 'Olá! Faça um cumprimento de boas-vindas e se coloque à disposição para ajudar.',
       config: {
         systemInstruction,
@@ -63,7 +63,7 @@ Escolha exatamente uma categoria da seguinte lista: ${availableCategories.join('
 Responda no formato JSON com as chaves "category" (string exata da lista) e "reasoning" (uma explicação curta de 1 frase).`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.7-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
