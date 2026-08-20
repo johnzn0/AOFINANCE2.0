@@ -1,0 +1,109 @@
+--- src/components/views/AccountsCardsView.tsx
++++ src/components/views/AccountsCardsView.tsx
+@@ -15,16 +15,20 @@
+-interface AccountsCardsViewProps {
+-  state: AppState;
+-  onAddAccount: (name: string) => void;
+-  onAddCard: (name: string, limit: number, closingDate: number, dueDate: number) => void;
+-  onAddCardPurchase: (cardId: string, description: string, amount: number, installments: number, date: string) => void;
+-  onPayCardInvoice: (cardId: string, amount: number, accountId: string, month: string) => void;
+-  onAddRecurringBill: (name: string, amount: number, day: number, category: string, accountId: string) => void;
+-  onToggleRecurringBill: (id: string) => void;
+-  onRemoveRecurringBill: (id: string) => void;
+-  onTransfer: (fromAccountId: string, toAccountId: string, amount: number, date: string, description: string) => void;
+-}
++import { Transfer } from '../../types';
++
++interface AccountsCardsViewProps {
++  state: AppState;
++  onAddAccount: (name: string, type?: Account['type']) => void;
++  onRemoveAccount?: (id: string) => void;
++  onAddTransfer: (tr: Omit<Transfer, 'id'>) => void;
++  onDeleteTransfer?: (id: string) => void;
++  onAddCard: (card: Omit<CreditCard, 'id'>) => void;
++  onRemoveCard?: (id: string) => void;
++  onAddCardPurchase: (purchase: Omit<CardPurchase, 'id' | 'paid' | 'invoiceMonth'>, installments: number, card: CreditCard) => void;
++  onPayCardInvoice: (cardId: string, invoiceMonth: string, accountId: string) => void;
++  onDeleteCardPurchase?: (id: string) => void;
++  onAddRecurringBill: (bill: Omit<RecurringBill, 'id'>) => void;
++  onToggleRecurringBill: (id: string) => void;
++  onRemoveRecurringBill: (id: string) => void;
++}
+ 
+ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
+   state,
+   onAddAccount,
++  onRemoveAccount,
++  onAddTransfer,
++  onDeleteTransfer,
+   onAddCard,
++  onRemoveCard,
+   onAddCardPurchase,
+   onPayCardInvoice,
++  onDeleteCardPurchase,
+   onAddRecurringBill,
+   onToggleRecurringBill,
+   onRemoveRecurringBill,
+-  onTransfer
+ }) => {
+@@ -82,10 +86,15 @@
+   const handleTransfer = (e: React.FormEvent) => {
+     e.preventDefault();
+     const amt = parseFloat(transferAmount.replace(/[^0-9.]/g, ''));
+     if (amt > 0 && transferFrom && transferTo && transferFrom !== transferTo) {
+-      onTransfer(transferFrom, transferTo, amt, new Date().toISOString().split('T')[0], 'Transferência entre contas');
++      onAddTransfer({
++        fromId: transferFrom,
++        toId: transferTo,
++        amount: amt,
++        date: new Date().toISOString().split('T')[0],
++        note: 'Transferência entre contas'
++      });
+       setActiveModal('none');
+       setTransferAmount('');
+     }
+   };
+ 
+   const handleAddCard = (e: React.FormEvent) => {
+     e.preventDefault();
+     if (cardName && parseFloat(cardLimit) > 0) {
+-      onAddCard(cardName, parseFloat(cardLimit), parseInt(cardClosing || '25'), parseInt(cardDue || '5'));
++      onAddCard({
++        name: cardName,
++        limit: parseFloat(cardLimit),
++        closingDay: parseInt(cardClosing || '25'),
++        dueDay: parseInt(cardDue || '5')
++      });
+       setActiveModal('none');
++      setCardName('');
++      setCardLimit('');
+     }
+   };
+ 
+   const handleAddPurchase = (e: React.FormEvent) => {
+     e.preventDefault();
+     if (cpDesc && parseFloat(cpAmount) > 0) {
+-      onAddCardPurchase(cpCardId, cpDesc, parseFloat(cpAmount), 1, new Date().toISOString().split('T')[0]);
++      const card = state.cards.find(c => c.id === cpCardId);
++      if (card) {
++        onAddCardPurchase({
++          cardId: cpCardId,
++          description: cpDesc,
++          amount: parseFloat(cpAmount),
++          date: new Date().toISOString().split('T')[0]
++        }, 1, card);
++      }
+       setActiveModal('none');
+       setCpDesc('');
+       setCpAmount('');
+     }
+   };
+ 
+   const handlePayInvoice = (e: React.FormEvent) => {
+     e.preventDefault();
+     if (payInvoiceCardId && payInvoiceAccountId && payInvoiceAmount > 0 && payInvoiceMonth) {
+-      onPayCardInvoice(payInvoiceCardId, payInvoiceAmount, payInvoiceAccountId, payInvoiceMonth);
++      onPayCardInvoice(payInvoiceCardId, payInvoiceMonth, payInvoiceAccountId);
+       setActiveModal('none');
+     }
+   };

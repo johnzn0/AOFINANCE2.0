@@ -1,0 +1,15 @@
+--- src/App.tsx
++++ src/App.tsx
+@@ -10,8 +10,6 @@
+ import { PWAInstallBanner } from './components/PWAInstallBanner';
+ import { GoalContribModal } from './components/GoalContribModal';
+-import { OnboardingModal } from './components/OnboardingModal';
+-import { AIAssistantModal } from './components/AIAssistantModal';
+ import { TransactionModal } from './components/TransactionModal';
+ import { Toast, ToastMessage } from './components/common/Toast';
+ import { saveStateToOfflineCache, saveProfileToOfflineCache } from './mobile/offlineStore';
+ import { Suspense, lazy } from 'react';
+ 
++const OnboardingModal = lazy(() => import('./components/OnboardingModal').then(m => ({ default: m.OnboardingModal })));
++const AIAssistantModal = lazy(() => import('./components/AIAssistantModal').then(m => ({ default: m.AIAssistantModal })));
+ const LoginView = lazy(() => import('./components/views/LoginView').then(m => ({ default: m.LoginView })));

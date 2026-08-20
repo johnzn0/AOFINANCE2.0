@@ -11,7 +11,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        injectRegister: 'auto',
+        injectRegister: 'inline',
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,json,webmanifest}'],
           cleanupOutdatedCaches: true
@@ -103,6 +103,8 @@ export default defineConfig(() => {
           manualChunks: {
             recharts: ['recharts'],
             vendor: ['react', 'react-dom', 'motion'],
+            lucide: ['lucide-react'],
+            supabase: ['@supabase/supabase-js']
           }
         }
       }

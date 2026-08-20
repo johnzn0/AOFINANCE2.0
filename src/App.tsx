@@ -9,8 +9,7 @@ import { MobileNav } from './components/MobileNav';
 import { Header } from './components/Header';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { GoalContribModal } from './components/GoalContribModal';
-import { OnboardingModal } from './components/OnboardingModal';
-import { AIAssistantModal } from './components/AIAssistantModal';
+
 import { TransactionModal } from './components/TransactionModal';
 import { Toast, ToastMessage } from './components/common/Toast';
 import { saveStateToOfflineCache, saveProfileToOfflineCache } from './mobile/offlineStore';
@@ -18,6 +17,8 @@ import { saveStateToOfflineCache, saveProfileToOfflineCache } from './mobile/off
 
 import { Suspense, lazy } from 'react';
 
+const OnboardingModal = lazy(() => import('./components/OnboardingModal').then(m => ({ default: m.OnboardingModal })));
+const AIAssistantModal = lazy(() => import('./components/AIAssistantModal').then(m => ({ default: m.AIAssistantModal })));
 const LoginView = lazy(() => import('./components/views/LoginView').then(m => ({ default: m.LoginView })));
 const AdminView = lazy(() => import('./components/views/AdminView').then(m => ({ default: m.AdminView })));
 const OverviewView = lazy(() => import('./components/views/OverviewView').then(m => ({ default: m.OverviewView })));
@@ -365,6 +366,7 @@ export default function App() {
 
 
 
+      <Suspense fallback={null}>
       <OnboardingModal
         isOpen={isOnboardingOpen}
         onClose={() => setIsOnboardingOpen(false)}
@@ -377,6 +379,7 @@ export default function App() {
         state={finance.state}
         userProfile={finance.userProfile}
       />
+      </Suspense>
     </div>
   );
 }
