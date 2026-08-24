@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   TrendingDown
 } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
+import { OpenFinanceModal } from '../OpenFinanceModal';
 import { AppState, Account, CreditCard, CardPurchase, RecurringBill, Transfer } from '../../types';
 import { fmt, calculateAccountBalance, formatDate } from '../../utils/formatters';
 
@@ -48,6 +50,7 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
 }) => {
   // Modal States
   const [activeModal, setActiveModal] = useState<'none' | 'account' | 'card' | 'transfer' | 'purchase' | 'bill' | 'payInvoice'>('none');
+  const [isOpenFinanceOpen, setIsOpenFinanceOpen] = useState(false);
 
   // Form States - Pay Invoice
   const [payInvoiceCardId, setPayInvoiceCardId] = useState('');
@@ -171,10 +174,25 @@ export const AccountsCardsView: React.FC<AccountsCardsViewProps> = ({
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
             <Landmark className="w-5 h-5 text-emerald-400" /> Contas Bancárias
           </h3>
-          <button onClick={() => setActiveModal('account')} className="text-emerald-400 hover:text-emerald-300 text-sm font-semibold flex items-center gap-1 transition">
-            <Plus className="w-4 h-4" /> Adicionar
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsOpenFinanceOpen(true)} className="text-emerald-400 hover:text-emerald-300 text-sm font-semibold flex items-center gap-1 transition">
+              <ShieldCheck className="w-4 h-4" /> Conectar Banco
+            </button>
+            <button onClick={() => setActiveModal('account')} className="text-emerald-400 hover:text-emerald-300 text-sm font-semibold flex items-center gap-1 transition">
+              <Plus className="w-4 h-4" /> Adicionar Manualmente
+            </button>
+          </div>
         </div>
+        
+        <OpenFinanceModal
+          isOpen={isOpenFinanceOpen}
+          onClose={() => setIsOpenFinanceOpen(false)}
+          onSuccess={(accounts) => {
+            accounts.forEach(acc => {
+              onAddAccount(acc.name, 'checking');
+            });
+          }}
+        />
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Total Box */}

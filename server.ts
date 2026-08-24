@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import authRoutes from './server/routes/auth';
 import aiRoutes from './server/routes/ai';
 import logsRoutes from './server/routes/logs';
+import pluggyRoutes from './server/routes/pluggy';
 
 const app = express();
 const PORT = 3000;
@@ -36,6 +37,7 @@ const apiLimiter = rateLimit({
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/ai', apiLimiter, aiRoutes);
 app.use('/api/logs', logsRoutes);
+app.use('/api/pluggy', apiLimiter, pluggyRoutes);
 
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   import('vite').then(({ createServer: createViteServer }) => {
