@@ -12,6 +12,10 @@ import pluggyRoutes from './server/routes/pluggy';
 const app = express();
 const PORT = 3000;
 
+// Trust the first proxy to allow rate-limiting and IP resolution
+// behind a reverse proxy (e.g. Cloud Run, Vercel).
+app.set('trust proxy', 1);
+
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
